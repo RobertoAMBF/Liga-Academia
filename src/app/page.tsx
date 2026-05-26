@@ -8,8 +8,10 @@ import {
   Clock3,
   Copy,
   Dumbbell,
+  Droplets,
   LogOut,
   Plus,
+  Trash2,
   Shield,
   Trophy,
   UserPlus,
@@ -35,6 +37,7 @@ type Standing = {
   absences: number;
   total_minutes: number;
   streak_bonus: number;
+  hydration_points: number;
   points: number;
 };
 
@@ -44,15 +47,35 @@ type Workout = {
   status: "present" | "absent";
   minutes: number;
   points: number;
+  water_ml: number;
+  water_goal_ml: number | null;
+  water_points: number;
   created_at: string;
   league_id: string;
+};
+
+type Profile = {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  weight_kg: number | null;
+  height_cm: number | null;
 };
 
 const today = new Date().toISOString().slice(0, 10);
 
 function pointsFor(status: "present" | "absent", minutes: number) {
   if (status === "absent") return -1;
-  return 3 + (minutes >= 90 ? 2 : minutes >= 45 ? 1 : 0);
+  if (minutes >= 120) return 5;
+  if (minutes >= 60) return 4;
+  if (minutes >= 30) return 3;
+  return 0;
+}
+
+function waterGoalFor(weightKg: number | null, heightCm: number | null) {
+  if (!weightKg || !heightCm) return null;
+  const heightAdjustment = heightCm >= 180 ? 250 : heightCm <= 155 ? -150 : 0;
+  return Math.max(1500, Math.round((weightKg * 35 + heightAdjustment) / 50) * 50);
 }
 
 export default function Home() {
@@ -226,16 +249,25 @@ function Dashboard({ user }: { user: User }) {
   const [activeLeague, setActiveLeague] = useState<League | null>(null);
   const [standings, setStandings] = useState<Standing[]>([]);
   const [history, setHistory] = useState<Workout[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [leagueName, setLeagueName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [workoutDate, setWorkoutDate] = useState(today);
   const [status, setStatus] = useState<"present" | "absent">("present");
   const [minutes, setMinutes] = useState(60);
+  const [weightKg, setWeightKg] = useState("");
+  const [heightCm, setHeightCm] = useState("");
+  const [waterMl, setWaterMl] = useState(2000);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
   const displayName = user.user_metadata.display_name || user.email?.split("@")[0] || "Atleta";
   const previewPoints = useMemo(() => pointsFor(status, minutes), [minutes, status]);
+  const waterGoalMl = useMemo(
+    () => waterGoalFor(profile?.weight_kg ?? null, profile?.height_cm ?? null),
+    [profile?.height_cm, profile?.weight_kg]
+  );
+  const waterPreviewPoints = waterGoalMl ? (waterMl >= waterGoalMl ? 1 : -1) : 0;
 
   useEffect(() => {
     syncProfile();
@@ -254,6 +286,21 @@ function Dashboard({ user }: { user: User }) {
       display_name: displayName,
       avatar_url: user.user_metadata.avatar_url ?? null
     });
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, display_name, avatar_url, weight_kg, height_cm")
+      .eq("id", user.id)
+      .single();
+
+    if (!error && data) {
+      const nextProfile = data as Profile;
+      setProfile(nextProfile);
+      setWeightKg(nextProfile.weight_kg ? String(nextProfile.weight_kg) : "");
+      setHeightCm(nextProfile.height_cm ? String(nextProfile.height_cm) : "");
+      const nextGoal = waterGoalFor(nextProfile.weight_kg, nextProfile.height_cm);
+      if (nextGoal) setWaterMl(nextGoal);
+    }
   }
 
   async function loadLeagues() {
@@ -278,7 +325,7 @@ function Dashboard({ user }: { user: User }) {
       supabase.rpc("get_league_standings", { p_league_id: leagueId }),
       supabase
         .from("workouts")
-        .select("id, workout_date, status, minutes, points, created_at, league_id")
+        .select("id, workout_date, status, minutes, points, water_ml, water_goal_ml, water_points, created_at, league_id")
         .eq("league_id", leagueId)
         .eq("user_id", user.id)
         .order("workout_date", { ascending: false })
@@ -326,6 +373,10 @@ function Dashboard({ user }: { user: User }) {
   async function saveWorkout(event: FormEvent) {
     event.preventDefault();
     if (!activeLeague) return;
+    if (status === "present" && minutes < 30) {
+      setNotice("Treino com presenca precisa ter pelo menos 30 minutos.");
+      return;
+    }
     setBusy(true);
     setNotice("");
 
@@ -336,6 +387,8 @@ function Dashboard({ user }: { user: User }) {
         workout_date: workoutDate,
         status,
         minutes: status === "present" ? minutes : 0,
+        water_ml: waterMl,
+        water_goal_ml: waterGoalMl,
         points: previewPoints
       },
       { onConflict: "league_id,user_id,workout_date" }
@@ -346,6 +399,54 @@ function Dashboard({ user }: { user: User }) {
       setNotice("Treino registrado.");
       await loadLeagueData(activeLeague.id);
     }
+    setBusy(false);
+  }
+
+  async function saveProfile(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setNotice("");
+
+    const nextWeight = weightKg.trim() ? Number(weightKg.replace(",", ".")) : null;
+    const nextHeight = heightCm.trim() ? Number(heightCm) : null;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({
+        weight_kg: nextWeight !== null && Number.isFinite(nextWeight) ? nextWeight : null,
+        height_cm: nextHeight !== null && Number.isFinite(nextHeight) ? nextHeight : null
+      })
+      .eq("id", user.id)
+      .select("id, display_name, avatar_url, weight_kg, height_cm")
+      .single();
+
+    if (error) setNotice(error.message);
+    else {
+      const nextProfile = data as Profile;
+      const nextGoal = waterGoalFor(nextProfile.weight_kg, nextProfile.height_cm);
+      setProfile(nextProfile);
+      if (nextGoal) setWaterMl(nextGoal);
+      setNotice("Perfil atualizado.");
+    }
+
+    setBusy(false);
+  }
+
+  async function deleteWorkout(workoutId: string) {
+    if (!activeLeague) return;
+    const confirmed = window.confirm("Excluir este registro de treino?");
+    if (!confirmed) return;
+
+    setBusy(true);
+    setNotice("");
+    const { error } = await supabase.from("workouts").delete().eq("id", workoutId).eq("user_id", user.id);
+
+    if (error) setNotice(error.message);
+    else {
+      setNotice("Registro excluido.");
+      await loadLeagueData(activeLeague.id);
+    }
+
     setBusy(false);
   }
 
@@ -427,6 +528,37 @@ function Dashboard({ user }: { user: User }) {
                 </button>
               </form>
             </Panel>
+
+            <Panel title="Perfil e agua" icon={<Droplets className="h-5 w-5" />}>
+              <form onSubmit={saveProfile} className="space-y-3">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold">Peso em kg</span>
+                  <input
+                    className="w-full rounded-lg border border-ink/15 px-3 py-3 outline-none focus:border-grass"
+                    inputMode="decimal"
+                    value={weightKg}
+                    onChange={(event) => setWeightKg(event.target.value)}
+                    placeholder="Ex: 78"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold">Altura em cm</span>
+                  <input
+                    className="w-full rounded-lg border border-ink/15 px-3 py-3 outline-none focus:border-grass"
+                    inputMode="numeric"
+                    value={heightCm}
+                    onChange={(event) => setHeightCm(event.target.value)}
+                    placeholder="Ex: 175"
+                  />
+                </label>
+                <div className="rounded-lg bg-mist p-3 text-sm font-bold text-ink/70">
+                  Meta diaria: {waterGoalMl ? `${waterGoalMl} ml (${(waterGoalMl / 1000).toFixed(2)} L)` : "preencha peso e altura"}
+                </div>
+                <button className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-black text-white" disabled={busy}>
+                  Salvar perfil
+                </button>
+              </form>
+            </Panel>
           </aside>
 
           <div className="space-y-5">
@@ -488,9 +620,9 @@ function Dashboard({ user }: { user: User }) {
                     <input
                       className="w-full accent-grass"
                       type="range"
-                      min={0}
-                      max={150}
-                      step={5}
+                      min={30}
+                      max={180}
+                      step={15}
                       value={minutes}
                       disabled={status === "absent"}
                       onChange={(event) => setMinutes(Number(event.target.value))}
@@ -498,6 +630,26 @@ function Dashboard({ user }: { user: User }) {
                     <div className="mt-2 flex items-center justify-between text-sm font-bold text-ink/65">
                       <span>{status === "present" ? `${minutes} min` : "0 min"}</span>
                       <span>{previewPoints > 0 ? `+${previewPoints}` : previewPoints} pts</span>
+                    </div>
+                  </label>
+
+                  <label>
+                    <span className="mb-2 flex items-center gap-2 text-sm font-bold">
+                      <Droplets className="h-4 w-4" />
+                      Agua tomada
+                    </span>
+                    <input
+                      className="w-full accent-grass"
+                      type="range"
+                      min={0}
+                      max={5000}
+                      step={100}
+                      value={waterMl}
+                      onChange={(event) => setWaterMl(Number(event.target.value))}
+                    />
+                    <div className="mt-2 flex items-center justify-between text-sm font-bold text-ink/65">
+                      <span>{waterMl} ml ({(waterMl / 1000).toFixed(1)} L)</span>
+                      <span>{waterGoalMl ? `${waterPreviewPoints > 0 ? "+" : ""}${waterPreviewPoints} pt` : "sem meta"}</span>
                     </div>
                   </label>
 
@@ -522,6 +674,7 @@ function Dashboard({ user }: { user: User }) {
                         <th className="text-center">Pres</th>
                         <th className="text-center">Faltas</th>
                         <th className="text-center">Min</th>
+                        <th className="text-center">Agua</th>
                         <th className="text-center">Seq</th>
                       </tr>
                     </thead>
@@ -534,12 +687,13 @@ function Dashboard({ user }: { user: User }) {
                           <td className="text-center font-bold">{row.presences}</td>
                           <td className="text-center font-bold">{row.absences}</td>
                           <td className="text-center font-bold">{row.total_minutes}</td>
+                          <td className="text-center font-bold">{row.hydration_points > 0 ? `+${row.hydration_points}` : row.hydration_points}</td>
                           <td className="rounded-r-lg text-center font-bold">+{row.streak_bonus}</td>
                         </tr>
                       ))}
                       {standings.length === 0 && (
                         <tr>
-                          <td className="py-6 text-center text-ink/55" colSpan={7}>
+                          <td className="py-6 text-center text-ink/55" colSpan={8}>
                             Sem treinos registrados nesta liga.
                           </td>
                         </tr>
@@ -556,13 +710,28 @@ function Dashboard({ user }: { user: User }) {
                   <div key={item.id} className="rounded-lg border border-ink/10 bg-mist p-4">
                     <div className="flex items-center justify-between gap-3">
                       <strong>{new Date(`${item.workout_date}T12:00:00`).toLocaleDateString("pt-BR")}</strong>
-                      <span className={clsx("rounded-full px-2 py-1 text-xs font-black", item.status === "present" ? "bg-grass text-white" : "bg-clay text-white")}>
-                        {item.status === "present" ? "Presenca" : "Falta"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={clsx("rounded-full px-2 py-1 text-xs font-black", item.status === "present" ? "bg-grass text-white" : "bg-clay text-white")}>
+                          {item.status === "present" ? "Presenca" : "Falta"}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Excluir treino"
+                          onClick={() => deleteWorkout(item.id)}
+                          className="rounded-md bg-white p-2 text-clay shadow-sm"
+                          disabled={busy}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                     <div className="mt-3 flex items-center justify-between text-sm font-bold text-ink/65">
                       <span>{item.minutes} min</span>
                       <span>{item.points > 0 ? `+${item.points}` : item.points} pts</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-sm font-bold text-ink/65">
+                      <span>{item.water_ml} ml de agua</span>
+                      <span>{item.water_points > 0 ? `+${item.water_points}` : item.water_points} pt</span>
                     </div>
                   </div>
                 ))}

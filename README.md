@@ -11,14 +11,27 @@ Aplicativo web em Next.js, TypeScript, Tailwind CSS e Supabase para criar ligas 
 - Pontuação automática por treino e bônus de sequência.
 - Tabela de classificação responsiva.
 - Histórico dos últimos treinos do usuário.
+- Exclusão de treino lançado errado.
+- Registro de água tomada com meta diária calculada por peso e altura.
 
 ## Regras de pontos
 
 - Presença: `+3`
 - Falta: `-1`
-- Treino com 45 minutos ou mais: `+1`
-- Treino com 90 minutos ou mais: `+2`
+- Treino de 30 minutos ou mais: `+3`
+- Treino de 60 minutos ou mais: `+4`
+- Treino de 120 minutos ou mais: `+5`
 - Cada sequência completa de 5 dias treinando: `+5`
+- Água tomada igual ou acima da meta diária: `+1`
+- Água tomada abaixo da meta diária: `-1`
+
+## Meta de água
+
+A meta diária usa `35 ml por kg` como base e aplica um pequeno ajuste por altura:
+
+- Altura de 180 cm ou mais: `+250 ml`
+- Altura de 155 cm ou menos: `-150 ml`
+- Meta mínima: `1500 ml`
 
 ## Como rodar localmente
 
@@ -61,13 +74,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 - `src/app/page.tsx`: interface, autenticação, ligas, ranking e histórico.
 - `src/lib/supabase.ts`: cliente Supabase.
-
-- 
 - `supabase/schema.sql`: tabelas, funções, triggers e políticas RLS.
+- `supabase/update-water-and-delete.sql`: atualização para projetos que já tinham o schema anterior.
 - `.env.example`: variáveis necessárias para local e Vercel.
 
 ## Observações
 
 O cálculo de pontos por treino é protegido por trigger no banco. Mesmo que o cliente envie um valor diferente, o Supabase recalcula antes de salvar.
-
-

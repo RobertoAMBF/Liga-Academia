@@ -7,6 +7,8 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text not null,
   avatar_url text,
+  weight_kg numeric(5,2),
+  height_cm integer,
   created_at timestamptz not null default now()
 );
 
@@ -41,6 +43,9 @@ create table if not exists public.workouts (
   status public.workout_status not null,
   minutes integer not null default 0 check (minutes between 0 and 1440),
   points integer not null default 0,
+  water_ml integer not null default 0 check (water_ml between 0 and 10000),
+  water_goal_ml integer check (water_goal_ml between 0 and 10000),
+  water_points integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (league_id, user_id, workout_date)
@@ -100,12 +105,22 @@ begin
   if new.status = 'absent' then
     new.minutes := 0;
     new.points := -1;
-  elsif new.minutes >= 90 then
+  elsif new.minutes < 30 then
+    raise exception 'Treino com presenca precisa ter pelo menos 30 minutos.';
+  elsif new.minutes >= 120 then
     new.points := 5;
-  elsif new.minutes >= 45 then
+  elsif new.minutes >= 60 then
     new.points := 4;
   else
     new.points := 3;
+  end if;
+
+  if new.water_goal_ml is null or new.water_goal_ml <= 0 then
+    new.water_points := 0;
+  elsif new.water_ml >= new.water_goal_ml then
+    new.water_points := 1;
+  else
+    new.water_points := -1;
   end if;
 
   new.updated_at := now();
@@ -197,6 +212,7 @@ returns table (
   absences bigint,
   total_minutes bigint,
   streak_bonus bigint,
+  hydration_points bigint,
   points bigint
 )
 language sql
@@ -221,7 +237,8 @@ as $$
       count(*) filter (where w.status = 'present') as presences,
       count(*) filter (where w.status = 'absent') as absences,
       coalesce(sum(w.minutes), 0) as total_minutes,
-      coalesce(sum(w.points), 0) as base_points
+      coalesce(sum(w.points), 0) as base_points,
+      coalesce(sum(w.water_points), 0) as hydration_points
     from public.workouts w
     where w.league_id = p_league_id
     group by w.user_id
@@ -255,7 +272,8 @@ as $$
     coalesce(wt.absences, 0) as absences,
     coalesce(wt.total_minutes, 0) as total_minutes,
     coalesce(bs.streak_bonus, 0) as streak_bonus,
-    coalesce(wt.base_points, 0) + coalesce(bs.streak_bonus, 0) as points
+    coalesce(wt.hydration_points, 0) as hydration_points,
+    coalesce(wt.base_points, 0) + coalesce(wt.hydration_points, 0) + coalesce(bs.streak_bonus, 0) as points
   from member_rows mr
   left join workout_totals wt on wt.user_id = mr.user_id
   left join best_streak bs on bs.user_id = mr.user_id
@@ -310,3 +328,9 @@ on public.workouts for update
 to authenticated
 using (user_id = auth.uid() and public.is_league_member(league_id, auth.uid()))
 with check (user_id = auth.uid() and public.is_league_member(league_id, auth.uid()));
+
+drop policy if exists "Users delete own workouts" on public.workouts;
+create policy "Users delete own workouts"
+on public.workouts for delete
+to authenticated
+using (user_id = auth.uid() and public.is_league_member(league_id, auth.uid()));
