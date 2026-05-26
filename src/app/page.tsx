@@ -459,27 +459,33 @@ function Dashboard({ user }: { user: User }) {
   return (
     <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-grass">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-grass">
               <Dumbbell className="h-5 w-5" />
               Liga da Academia
             </div>
-            <h1 className="mt-2 text-3xl font-black tracking-normal sm:text-5xl">Ola, {displayName}</h1>
+            <h1 className="mt-2 text-4xl font-black leading-none tracking-normal text-ink sm:text-6xl">
+              Ola, {displayName}
+            </h1>
           </div>
           <button
             onClick={() => supabase.auth.signOut()}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-ink/10 bg-white px-4 py-3 text-sm font-bold shadow-sm"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-ink/10 bg-white px-4 py-3 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:border-grass/35 hover:shadow-soft"
           >
             <LogOut className="h-4 w-4" />
             Sair
           </button>
         </header>
 
-        {notice && <div className="mb-5 rounded-lg border border-grass/20 bg-white px-4 py-3 text-sm font-bold">{notice}</div>}
+        {notice && (
+          <div className="mb-5 rounded-lg border border-grass/20 bg-white px-4 py-3 text-sm font-bold shadow-sm">
+            {notice}
+          </div>
+        )}
 
-        <section className="grid gap-5 lg:grid-cols-[320px_1fr]">
-          <aside className="space-y-5">
+        <section className="grid gap-5 lg:grid-cols-[1fr_330px]">
+          <aside className="order-2 space-y-5 lg:order-2">
             <Panel title="Minhas ligas" icon={<UsersRound className="h-5 w-5" />}>
               <div className="space-y-2">
                 {leagues.length === 0 && <p className="text-sm text-ink/60">Crie ou entre em uma liga para comecar.</p>}
@@ -488,12 +494,14 @@ function Dashboard({ user }: { user: User }) {
                     key={league.id}
                     onClick={() => setActiveLeague(league)}
                     className={clsx(
-                      "flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left font-bold",
-                      activeLeague?.id === league.id ? "border-grass bg-mist text-grass" : "border-ink/10 bg-white"
+                      "flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left font-bold transition hover:-translate-y-0.5 hover:shadow-sm",
+                      activeLeague?.id === league.id
+                        ? "border-grass bg-mist text-grass shadow-sm"
+                        : "border-ink/10 bg-white hover:border-grass/35"
                     )}
                   >
                     <span>{league.name}</span>
-                    <span className="text-xs">{league.invite_code}</span>
+                    <span className="rounded-full bg-white px-2 py-1 text-xs text-ink/65">{league.invite_code}</span>
                   </button>
                 ))}
               </div>
@@ -561,26 +569,97 @@ function Dashboard({ user }: { user: User }) {
             </Panel>
           </aside>
 
-          <div className="space-y-5">
-            <section className="rounded-lg bg-ink p-5 text-white shadow-soft">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="order-1 space-y-5 lg:order-1">
+            <section className="overflow-hidden rounded-lg bg-ink text-white shadow-soft">
+              <div className="grid gap-5 p-5 sm:grid-cols-[1fr_auto] sm:items-center sm:p-6">
                 <div>
-                  <p className="text-sm font-bold uppercase tracking-wide text-lime">Liga ativa</p>
-                  <h2 className="mt-1 text-3xl font-black">{activeLeague?.name ?? "Nenhuma liga"}</h2>
+                  <p className="text-xs font-black uppercase tracking-wide text-lime">Liga ativa</p>
+                  <h2 className="mt-2 text-4xl font-black leading-none">{activeLeague?.name ?? "Nenhuma liga"}</h2>
                 </div>
                 {activeLeague && (
                   <button
                     onClick={copyInvite}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-ink"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-ink shadow-sm transition hover:-translate-y-0.5 hover:bg-lime"
                   >
                     <Copy className="h-4 w-4" />
                     {activeLeague.invite_code}
                   </button>
                 )}
               </div>
+              <div className="grid grid-cols-3 border-t border-white/10 bg-white/5 text-center">
+                <ScoreHint value="+3" label="30 min" />
+                <ScoreHint value="+4" label="60 min" />
+                <ScoreHint value="+5" label="120 min" />
+              </div>
             </section>
 
-            <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+            <Panel title="Classificacao" icon={<Trophy className="h-5 w-5" />} featured>
+              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <LeagueStat label="Atletas" value={standings.length} />
+                <LeagueStat label="Treinos" value={standings.reduce((sum, row) => sum + row.presences + row.absences, 0)} />
+                <LeagueStat label="Presencas" value={standings.reduce((sum, row) => sum + row.presences, 0)} />
+                <LeagueStat label="Minutos" value={standings.reduce((sum, row) => sum + row.total_minutes, 0)} />
+              </div>
+              <div className="overflow-x-auto rounded-lg border border-ink/10">
+                <table className="w-full min-w-[740px] border-collapse text-sm">
+                  <thead className="bg-ink text-left text-[11px] uppercase tracking-wide text-white/70">
+                    <tr>
+                      <th className="px-4 py-3">Pos</th>
+                      <th className="py-3">Atleta</th>
+                      <th className="text-center">Pts</th>
+                      <th className="text-center">Pres</th>
+                      <th className="text-center">Faltas</th>
+                      <th className="text-center">Min</th>
+                      <th className="text-center">Agua</th>
+                      <th className="pr-4 text-center">Seq</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-ink/10 bg-white">
+                    {standings.map((row, index) => (
+                      <tr key={row.user_id} className="transition hover:bg-mist/80">
+                        <td className="px-4 py-4">
+                          <span
+                            className={clsx(
+                              "inline-grid h-9 w-9 place-items-center rounded-lg text-sm font-black",
+                              index === 0 ? "bg-lime text-ink" : "bg-mist text-ink/70"
+                            )}
+                          >
+                            {index + 1}
+                          </span>
+                        </td>
+                        <td className="py-4">
+                          <div className="font-black text-ink">{row.display_name}</div>
+                          <div className="text-xs font-bold text-ink/45">
+                            {row.presences + row.absences} registros
+                          </div>
+                        </td>
+                        <td className="text-center">
+                          <span className="inline-flex min-w-14 justify-center rounded-full bg-grass px-3 py-1 text-base font-black text-white">
+                            {row.points}
+                          </span>
+                        </td>
+                        <td className="text-center font-black text-grass">{row.presences}</td>
+                        <td className="text-center font-black text-clay">{row.absences}</td>
+                        <td className="text-center font-bold text-ink/70">{row.total_minutes}</td>
+                        <td className="text-center font-bold text-ink/70">
+                          {row.hydration_points > 0 ? `+${row.hydration_points}` : row.hydration_points}
+                        </td>
+                        <td className="pr-4 text-center font-black text-ink/70">+{row.streak_bonus}</td>
+                      </tr>
+                    ))}
+                    {standings.length === 0 && (
+                      <tr>
+                        <td className="py-10 text-center text-ink/55" colSpan={8}>
+                          Sem treinos registrados nesta liga.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+
+            <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
               <Panel title="Registrar treino" icon={<CalendarDays className="h-5 w-5" />}>
                 <form onSubmit={saveWorkout} className="grid gap-4">
                   <label>
@@ -662,76 +741,44 @@ function Dashboard({ user }: { user: User }) {
                   </button>
                 </form>
               </Panel>
-
-              <Panel title="Classificacao" icon={<Trophy className="h-5 w-5" />}>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[620px] border-separate border-spacing-y-2 text-sm">
-                    <thead className="text-left text-xs uppercase tracking-wide text-ink/50">
-                      <tr>
-                        <th className="px-3">#</th>
-                        <th>Atleta</th>
-                        <th className="text-center">P</th>
-                        <th className="text-center">Pres</th>
-                        <th className="text-center">Faltas</th>
-                        <th className="text-center">Min</th>
-                        <th className="text-center">Agua</th>
-                        <th className="text-center">Seq</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {standings.map((row, index) => (
-                        <tr key={row.user_id} className="bg-mist">
-                          <td className="rounded-l-lg px-3 py-3 font-black">{index + 1}</td>
-                          <td className="py-3 font-black">{row.display_name}</td>
-                          <td className="text-center text-lg font-black text-grass">{row.points}</td>
-                          <td className="text-center font-bold">{row.presences}</td>
-                          <td className="text-center font-bold">{row.absences}</td>
-                          <td className="text-center font-bold">{row.total_minutes}</td>
-                          <td className="text-center font-bold">{row.hydration_points > 0 ? `+${row.hydration_points}` : row.hydration_points}</td>
-                          <td className="rounded-r-lg text-center font-bold">+{row.streak_bonus}</td>
-                        </tr>
-                      ))}
-                      {standings.length === 0 && (
-                        <tr>
-                          <td className="py-6 text-center text-ink/55" colSpan={8}>
-                            Sem treinos registrados nesta liga.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Panel>
             </div>
 
             <Panel title="Historico de treinos" icon={<Clock3 className="h-5 w-5" />}>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {history.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-ink/10 bg-mist p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <strong>{new Date(`${item.workout_date}T12:00:00`).toLocaleDateString("pt-BR")}</strong>
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-ink/10 bg-mist p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-grass/30 hover:bg-white hover:shadow-soft"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="text-[11px] font-black uppercase tracking-wide text-ink/45">Rodada</span>
+                        <strong className="block text-lg text-ink">
+                          {new Date(`${item.workout_date}T12:00:00`).toLocaleDateString("pt-BR")}
+                        </strong>
+                      </div>
                       <div className="flex items-center gap-2">
-                        <span className={clsx("rounded-full px-2 py-1 text-xs font-black", item.status === "present" ? "bg-grass text-white" : "bg-clay text-white")}>
+                        <span className={clsx("rounded-full px-2.5 py-1 text-xs font-black", item.status === "present" ? "bg-grass text-white" : "bg-clay text-white")}>
                           {item.status === "present" ? "Presenca" : "Falta"}
                         </span>
                         <button
                           type="button"
                           aria-label="Excluir treino"
                           onClick={() => deleteWorkout(item.id)}
-                          className="rounded-md bg-white p-2 text-clay shadow-sm"
+                          className="rounded-md bg-white p-2 text-clay shadow-sm transition hover:bg-clay hover:text-white"
                           disabled={busy}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between text-sm font-bold text-ink/65">
-                      <span>{item.minutes} min</span>
-                      <span>{item.points > 0 ? `+${item.points}` : item.points} pts</span>
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                      <RoundStat label="Treino" value={`${item.minutes} min`} />
+                      <RoundStat label="Pontos" value={`${item.points > 0 ? "+" : ""}${item.points}`} />
+                      <RoundStat label="Agua" value={`${item.water_points > 0 ? "+" : ""}${item.water_points}`} />
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-sm font-bold text-ink/65">
-                      <span>{item.water_ml} ml de agua</span>
-                      <span>{item.water_points > 0 ? `+${item.water_points}` : item.water_points} pt</span>
+                    <div className="mt-3 rounded-md bg-white/70 px-3 py-2 text-sm font-bold text-ink/60">
+                      {item.water_ml} ml de agua
                     </div>
                   </div>
                 ))}
@@ -745,14 +792,56 @@ function Dashboard({ user }: { user: User }) {
   );
 }
 
-function Panel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+function Panel({
+  title,
+  icon,
+  children,
+  featured = false
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+  featured?: boolean;
+}) {
   return (
-    <section className="rounded-lg border border-white/80 bg-white p-4 shadow-sm sm:p-5">
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-black">
+    <section
+      className={clsx(
+        "rounded-lg border border-white/80 bg-white p-4 shadow-sm sm:p-5",
+        featured && "shadow-soft"
+      )}
+    >
+      <h2 className={clsx("mb-4 flex items-center gap-2 font-black", featured ? "text-2xl" : "text-lg")}>
         <span className="text-grass">{icon}</span>
         {title}
       </h2>
       {children}
     </section>
+  );
+}
+
+function ScoreHint({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="px-3 py-4">
+      <strong className="block text-xl font-black text-lime">{value}</strong>
+      <span className="text-[11px] font-black uppercase tracking-wide text-white/55">{label}</span>
+    </div>
+  );
+}
+
+function LeagueStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-ink/10 bg-mist px-4 py-3">
+      <strong className="block text-2xl font-black text-ink">{value}</strong>
+      <span className="text-[11px] font-black uppercase tracking-wide text-ink/45">{label}</span>
+    </div>
+  );
+}
+
+function RoundStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-white px-2 py-2">
+      <strong className="block text-sm font-black text-ink">{value}</strong>
+      <span className="text-[10px] font-black uppercase tracking-wide text-ink/40">{label}</span>
+    </div>
   );
 }
