@@ -61,6 +61,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 - `src/app/page.tsx`: interface, autenticação, ligas, ranking e histórico.
 - `src/lib/supabase.ts`: cliente Supabase.
+
+- 
 - `supabase/schema.sql`: tabelas, funções, triggers e políticas RLS.
 - `.env.example`: variáveis necessárias para local e Vercel.
 
