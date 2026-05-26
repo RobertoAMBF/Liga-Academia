@@ -69,3 +69,5 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 ## Observações
 
 O cálculo de pontos por treino é protegido por trigger no banco. Mesmo que o cliente envie um valor diferente, o Supabase recalcula antes de salvar.
+
+
