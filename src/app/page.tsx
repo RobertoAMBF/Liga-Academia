@@ -277,6 +277,9 @@ function Dashboard({ user }: { user: User }) {
   useEffect(() => {
     if (activeLeague) {
       loadLeagueData(activeLeague.id);
+    } else {
+      setStandings([]);
+      setHistory([]);
     }
   }, [activeLeague]);
 
@@ -317,7 +320,7 @@ function Dashboard({ user }: { user: User }) {
 
     const nextLeagues = (data ?? []).map((item) => item.leagues).filter(Boolean) as unknown as League[];
     setLeagues(nextLeagues);
-    setActiveLeague((current) => current ?? nextLeagues[0] ?? null);
+    setActiveLeague((current) => nextLeagues.find((league) => league.id === current?.id) ?? nextLeagues[0] ?? null);
   }
 
   async function loadLeagueData(leagueId: string) {
@@ -367,6 +370,24 @@ function Dashboard({ user }: { user: User }) {
       await loadLeagues();
       setNotice("Voce entrou na liga.");
     }
+    setBusy(false);
+  }
+
+  async function leaveLeague(league: League) {
+    const confirmed = window.confirm(`Sair da liga ${league.name}?`);
+    if (!confirmed) return;
+
+    setBusy(true);
+    setNotice("");
+
+    const { error } = await supabase.rpc("leave_league", { p_league_id: league.id });
+
+    if (error) setNotice(error.message);
+    else {
+      setNotice(`Voce saiu da liga ${league.name}.`);
+      await loadLeagues();
+    }
+
     setBusy(false);
   }
 
@@ -490,19 +511,33 @@ function Dashboard({ user }: { user: User }) {
               <div className="space-y-2">
                 {leagues.length === 0 && <p className="text-sm text-ink/60">Crie ou entre em uma liga para comecar.</p>}
                 {leagues.map((league) => (
-                  <button
+                  <div
                     key={league.id}
-                    onClick={() => setActiveLeague(league)}
                     className={clsx(
-                      "flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left font-bold transition hover:-translate-y-0.5 hover:shadow-sm",
+                      "grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg border p-2 transition hover:-translate-y-0.5 hover:shadow-sm",
                       activeLeague?.id === league.id
                         ? "border-grass bg-mist text-grass shadow-sm"
                         : "border-ink/10 bg-white hover:border-grass/35"
                     )}
                   >
-                    <span>{league.name}</span>
-                    <span className="rounded-full bg-white px-2 py-1 text-xs text-ink/65">{league.invite_code}</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveLeague(league)}
+                      className="flex min-w-0 items-center justify-between gap-2 rounded-md px-1 py-1 text-left font-bold"
+                    >
+                      <span className="truncate">{league.name}</span>
+                      <span className="rounded-full bg-white px-2 py-1 text-xs text-ink/65">{league.invite_code}</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Sair da liga ${league.name}`}
+                      onClick={() => leaveLeague(league)}
+                      className="rounded-md bg-white p-2 text-clay shadow-sm transition hover:bg-clay hover:text-white disabled:opacity-50"
+                      disabled={busy}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </Panel>
@@ -594,11 +629,8 @@ function Dashboard({ user }: { user: User }) {
             </section>
 
             <Panel title="Classificacao" icon={<Trophy className="h-5 w-5" />} featured>
-              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="mb-4 max-w-48">
                 <LeagueStat label="Atletas" value={standings.length} />
-                <LeagueStat label="Treinos" value={standings.reduce((sum, row) => sum + row.presences + row.absences, 0)} />
-                <LeagueStat label="Presencas" value={standings.reduce((sum, row) => sum + row.presences, 0)} />
-                <LeagueStat label="Minutos" value={standings.reduce((sum, row) => sum + row.total_minutes, 0)} />
               </div>
               <div className="overflow-x-auto rounded-lg border border-ink/10">
                 <table className="w-full min-w-[740px] border-collapse text-sm">
