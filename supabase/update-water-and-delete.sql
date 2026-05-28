@@ -55,6 +55,25 @@ set points = case
     else -1
   end;
 
+create or replace function public.leave_league(p_league_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Usuario nao autenticado.';
+  end if;
+
+  delete from public.league_members
+  where league_id = p_league_id
+    and user_id = auth.uid();
+end;
+$$;
+
+drop function if exists public.get_league_standings(uuid);
+
 create or replace function public.get_league_standings(p_league_id uuid)
 returns table (
   user_id uuid,
@@ -137,3 +156,5 @@ create policy "Users delete own workouts"
 on public.workouts for delete
 to authenticated
 using (user_id = auth.uid() and public.is_league_member(league_id, auth.uid()));
+
+notify pgrst, 'reload schema';
