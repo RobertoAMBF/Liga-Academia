@@ -162,7 +162,7 @@ function AuthScreen() {
           </div>
           <div className="grid max-w-2xl grid-cols-3 gap-3">
             {[
-              ["+3", "presenca"],
+              ["+3", "presença"],
               ["+5", "sequencia"],
               ["-1", "falta"]
             ].map(([value, label]) => (
@@ -258,6 +258,7 @@ function Dashboard({ user }: { user: User }) {
   const [weightKg, setWeightKg] = useState("");
   const [heightCm, setHeightCm] = useState("");
   const [waterMl, setWaterMl] = useState(2000);
+  const [activeTab, setActiveTab] = useState<"league" | "training">("league");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -368,7 +369,7 @@ function Dashboard({ user }: { user: User }) {
     else {
       setInviteCode("");
       await loadLeagues();
-      setNotice("Voce entrou na liga.");
+      setNotice("Você entrou na liga.");
     }
     setBusy(false);
   }
@@ -384,7 +385,7 @@ function Dashboard({ user }: { user: User }) {
 
     if (error) setNotice(error.message);
     else {
-      setNotice(`Voce saiu da liga ${league.name}.`);
+      setNotice(`Você saiu da liga ${league.name}.`);
       await loadLeagues();
     }
 
@@ -395,7 +396,7 @@ function Dashboard({ user }: { user: User }) {
     event.preventDefault();
     if (!activeLeague) return;
     if (status === "present" && minutes < 30) {
-      setNotice("Treino com presenca precisa ter pelo menos 30 minutos.");
+      setNotice("Treino com presença precisa ter pelo menos 30 minutos.");
       return;
     }
     setBusy(true);
@@ -464,7 +465,7 @@ function Dashboard({ user }: { user: User }) {
 
     if (error) setNotice(error.message);
     else {
-      setNotice("Registro excluido.");
+      setNotice("Registro excluído.");
       await loadLeagueData(activeLeague.id);
     }
 
@@ -474,7 +475,7 @@ function Dashboard({ user }: { user: User }) {
   async function copyInvite() {
     if (!activeLeague) return;
     await navigator.clipboard.writeText(activeLeague.invite_code);
-    setNotice("Codigo copiado.");
+    setNotice("Código copiado.");
   }
 
   return (
@@ -487,7 +488,7 @@ function Dashboard({ user }: { user: User }) {
               Liga da Academia
             </div>
             <h1 className="mt-2 text-4xl font-black leading-none tracking-normal text-ink sm:text-6xl">
-              Ola, {displayName}
+              Olá, {displayName}
             </h1>
           </div>
           <button
@@ -505,110 +506,141 @@ function Dashboard({ user }: { user: User }) {
           </div>
         )}
 
+        <div className="mb-5 grid grid-cols-2 gap-2 rounded-lg bg-white p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setActiveTab("league")}
+            className={clsx(
+              "inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-black transition",
+              activeTab === "league" ? "bg-ink text-white shadow-sm" : "text-ink/65 hover:bg-mist"
+            )}
+          >
+            <Trophy className="h-4 w-4" />
+            Liga
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("training")}
+            className={clsx(
+              "inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-black transition",
+              activeTab === "training" ? "bg-ink text-white shadow-sm" : "text-ink/65 hover:bg-mist"
+            )}
+          >
+            <Dumbbell className="h-4 w-4" />
+            Treinos
+          </button>
+        </div>
+
         <section className="grid gap-5 lg:grid-cols-[1fr_330px]">
           <aside className="order-2 space-y-5 lg:order-2">
-            <Panel title="Minhas ligas" icon={<UsersRound className="h-5 w-5" />}>
-              <div className="space-y-2">
-                {leagues.length === 0 && <p className="text-sm text-ink/60">Crie ou entre em uma liga para comecar.</p>}
-                {leagues.map((league) => (
-                  <div
-                    key={league.id}
-                    className={clsx(
-                      "grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg border p-2 transition hover:-translate-y-0.5 hover:shadow-sm",
-                      activeLeague?.id === league.id
-                        ? "border-grass bg-mist text-grass shadow-sm"
-                        : "border-ink/10 bg-white hover:border-grass/35"
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setActiveLeague(league)}
-                      className="flex min-w-0 items-center justify-between gap-2 rounded-md px-1 py-1 text-left font-bold"
-                    >
-                      <span className="truncate">{league.name}</span>
-                      <span className="rounded-full bg-white px-2 py-1 text-xs text-ink/65">{league.invite_code}</span>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Sair da liga ${league.name}`}
-                      onClick={() => leaveLeague(league)}
-                      className="rounded-md bg-white p-2 text-clay shadow-sm transition hover:bg-clay hover:text-white disabled:opacity-50"
-                      disabled={busy}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+            {activeTab === "league" ? (
+              <>
+                <Panel title="Minhas Ligas" icon={<UsersRound className="h-5 w-5" />}>
+                  <div className="space-y-2">
+                    {leagues.length === 0 && <p className="text-sm text-ink/60">Crie ou entre em uma liga para começar.</p>}
+                    {leagues.map((league) => (
+                      <div
+                        key={league.id}
+                        className={clsx(
+                          "grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg border p-2 transition hover:-translate-y-0.5 hover:shadow-sm",
+                          activeLeague?.id === league.id
+                            ? "border-grass bg-mist text-grass shadow-sm"
+                            : "border-ink/10 bg-white hover:border-grass/35"
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setActiveLeague(league)}
+                          className="flex min-w-0 items-center justify-between gap-2 rounded-md px-1 py-1 text-left font-bold"
+                        >
+                          <span className="truncate">{league.name}</span>
+                          <span className="rounded-full bg-white px-2 py-1 text-xs text-ink/65">{league.invite_code}</span>
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Sair da liga ${league.name}`}
+                          onClick={() => leaveLeague(league)}
+                          className="rounded-md bg-white p-2 text-clay shadow-sm transition hover:bg-clay hover:text-white disabled:opacity-50"
+                          disabled={busy}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </Panel>
+                </Panel>
 
-            <Panel title="Criar liga" icon={<Plus className="h-5 w-5" />}>
-              <form onSubmit={createLeague} className="space-y-3">
-                <input
-                  className="w-full rounded-lg border border-ink/15 px-3 py-3 outline-none focus:border-grass"
-                  value={leagueName}
-                  onChange={(event) => setLeagueName(event.target.value)}
-                  required
-                  placeholder="Nome da liga"
-                />
-                <button className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-black text-white" disabled={busy}>
-                  Criar
-                </button>
-              </form>
-            </Panel>
+                <Panel title="Criar Liga" icon={<Plus className="h-5 w-5" />}>
+                  <form onSubmit={createLeague} className="space-y-3">
+                    <input
+                      className="w-full rounded-lg border border-ink/15 px-3 py-3 outline-none focus:border-grass"
+                      value={leagueName}
+                      onChange={(event) => setLeagueName(event.target.value)}
+                      required
+                      placeholder="Nome da liga"
+                    />
+                    <button className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-black text-white" disabled={busy}>
+                      Criar
+                    </button>
+                  </form>
+                </Panel>
 
-            <Panel title="Entrar por codigo" icon={<UserPlus className="h-5 w-5" />}>
-              <form onSubmit={joinLeague} className="space-y-3">
-                <input
-                  className="w-full rounded-lg border border-ink/15 px-3 py-3 uppercase outline-none focus:border-grass"
-                  value={inviteCode}
-                  onChange={(event) => setInviteCode(event.target.value)}
-                  required
-                  placeholder="ABC123"
-                />
-                <button className="w-full rounded-lg bg-grass px-4 py-3 text-sm font-black text-white" disabled={busy}>
-                  Entrar
-                </button>
-              </form>
-            </Panel>
-
-            <Panel title="Perfil e agua" icon={<Droplets className="h-5 w-5" />}>
-              <form onSubmit={saveProfile} className="space-y-3">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-bold">Peso em kg</span>
-                  <input
-                    className="w-full rounded-lg border border-ink/15 px-3 py-3 outline-none focus:border-grass"
-                    inputMode="decimal"
-                    value={weightKg}
-                    onChange={(event) => setWeightKg(event.target.value)}
-                    placeholder="Ex: 78"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-bold">Altura em cm</span>
-                  <input
-                    className="w-full rounded-lg border border-ink/15 px-3 py-3 outline-none focus:border-grass"
-                    inputMode="numeric"
-                    value={heightCm}
-                    onChange={(event) => setHeightCm(event.target.value)}
-                    placeholder="Ex: 175"
-                  />
-                </label>
-                <div className="rounded-lg bg-mist p-3 text-sm font-bold text-ink/70">
-                  Meta diaria: {waterGoalMl ? `${waterGoalMl} ml (${(waterGoalMl / 1000).toFixed(2)} L)` : "preencha peso e altura"}
-                </div>
-                <button className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-black text-white" disabled={busy}>
-                  Salvar perfil
-                </button>
-              </form>
-            </Panel>
+                <Panel title="Entrar por Código" icon={<UserPlus className="h-5 w-5" />}>
+                  <form onSubmit={joinLeague} className="space-y-3">
+                    <input
+                      className="w-full rounded-lg border border-ink/15 px-3 py-3 uppercase outline-none focus:border-grass"
+                      value={inviteCode}
+                      onChange={(event) => setInviteCode(event.target.value)}
+                      required
+                      placeholder="ABC123"
+                    />
+                    <button className="w-full rounded-lg bg-grass px-4 py-3 text-sm font-black text-white" disabled={busy}>
+                      Entrar
+                    </button>
+                  </form>
+                </Panel>
+              </>
+            ) : (
+              <Panel title="Perfil e Água" icon={<Droplets className="h-5 w-5" />}>
+                <form onSubmit={saveProfile} className="space-y-3">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold">Peso em kg</span>
+                    <input
+                      className="w-full rounded-lg border border-ink/15 px-3 py-3 outline-none focus:border-grass"
+                      inputMode="decimal"
+                      value={weightKg}
+                      onChange={(event) => setWeightKg(event.target.value)}
+                      placeholder="Ex: 78"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold">Altura em cm</span>
+                    <input
+                      className="w-full rounded-lg border border-ink/15 px-3 py-3 outline-none focus:border-grass"
+                      inputMode="numeric"
+                      value={heightCm}
+                      onChange={(event) => setHeightCm(event.target.value)}
+                      placeholder="Ex: 175"
+                    />
+                  </label>
+                  <div className="rounded-lg bg-mist p-3 text-sm font-bold text-ink/70">
+                    Meta Diária: {waterGoalMl ? `${waterGoalMl} ml (${(waterGoalMl / 1000).toFixed(2)} L)` : "preencha peso e altura"}
+                  </div>
+                  <button className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-black text-white" disabled={busy}>
+                    Salvar perfil
+                  </button>
+                </form>
+              </Panel>
+            )}
           </aside>
 
           <div className="order-1 space-y-5 lg:order-1">
+            {activeTab === "league" ? (
+              <>
             <section className="overflow-hidden rounded-lg bg-ink text-white shadow-soft">
               <div className="grid gap-5 p-5 sm:grid-cols-[1fr_auto] sm:items-center sm:p-6">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-lime">Liga ativa</p>
+                  <p className="text-xs font-black uppercase tracking-wide text-lime">Liga Ativa</p>
                   <h2 className="mt-2 text-4xl font-black leading-none">{activeLeague?.name ?? "Nenhuma liga"}</h2>
                 </div>
                 {activeLeague && (
@@ -628,7 +660,7 @@ function Dashboard({ user }: { user: User }) {
               </div>
             </section>
 
-            <Panel title="Classificacao" icon={<Trophy className="h-5 w-5" />} featured>
+            <Panel title="Classificação" icon={<Trophy className="h-5 w-5" />} featured>
               <div className="mb-4 max-w-48">
                 <LeagueStat label="Atletas" value={standings.length} />
               </div>
@@ -690,9 +722,11 @@ function Dashboard({ user }: { user: User }) {
                 </table>
               </div>
             </Panel>
-
+              </>
+            ) : (
+              <>
             <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
-              <Panel title="Registrar treino" icon={<CalendarDays className="h-5 w-5" />}>
+              <Panel title="Registrar Treino" icon={<CalendarDays className="h-5 w-5" />}>
                 <form onSubmit={saveWorkout} className="grid gap-4">
                   <label>
                     <span className="mb-2 block text-sm font-bold">Data</span>
@@ -711,7 +745,7 @@ function Dashboard({ user }: { user: User }) {
                       className={clsx("inline-flex items-center justify-center gap-2 rounded-md py-3 text-sm font-black", status === "present" && "bg-white shadow-sm")}
                     >
                       <CheckCircle2 className="h-4 w-4" />
-                      Presenca
+                      Presença
                     </button>
                     <button
                       type="button"
@@ -726,7 +760,7 @@ function Dashboard({ user }: { user: User }) {
                   <label className={clsx(status === "absent" && "opacity-45")}>
                     <span className="mb-2 flex items-center gap-2 text-sm font-bold">
                       <Clock3 className="h-4 w-4" />
-                      Tempo de treino
+                      Tempo de Treino
                     </span>
                     <input
                       className="w-full accent-grass"
@@ -747,7 +781,7 @@ function Dashboard({ user }: { user: User }) {
                   <label>
                     <span className="mb-2 flex items-center gap-2 text-sm font-bold">
                       <Droplets className="h-4 w-4" />
-                      Agua tomada
+                      Água Tomada
                     </span>
                     <input
                       className="w-full accent-grass"
@@ -775,7 +809,7 @@ function Dashboard({ user }: { user: User }) {
               </Panel>
             </div>
 
-            <Panel title="Historico de treinos" icon={<Clock3 className="h-5 w-5" />}>
+            <Panel title="Histórico de Treinos" icon={<Clock3 className="h-5 w-5" />}>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {history.map((item) => (
                   <div
@@ -791,7 +825,7 @@ function Dashboard({ user }: { user: User }) {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={clsx("rounded-full px-2.5 py-1 text-xs font-black", item.status === "present" ? "bg-grass text-white" : "bg-clay text-white")}>
-                          {item.status === "present" ? "Presenca" : "Falta"}
+                          {item.status === "present" ? "Presença" : "Falta"}
                         </span>
                         <button
                           type="button"
@@ -807,16 +841,18 @@ function Dashboard({ user }: { user: User }) {
                     <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                       <RoundStat label="Treino" value={`${item.minutes} min`} />
                       <RoundStat label="Pontos" value={`${item.points > 0 ? "+" : ""}${item.points}`} />
-                      <RoundStat label="Agua" value={`${item.water_points > 0 ? "+" : ""}${item.water_points}`} />
+                      <RoundStat label="Água" value={`${item.water_points > 0 ? "+" : ""}${item.water_points}`} />
                     </div>
                     <div className="mt-3 rounded-md bg-white/70 px-3 py-2 text-sm font-bold text-ink/60">
-                      {item.water_ml} ml de agua
+                      {item.water_ml} ml de água
                     </div>
                   </div>
                 ))}
-                {history.length === 0 && <p className="text-sm text-ink/55">Seu historico aparece aqui depois do primeiro registro.</p>}
+                {history.length === 0 && <p className="text-sm text-ink/55">Seu histórico aparece aqui depois do primeiro registro.</p>}
               </div>
             </Panel>
+              </>
+            )}
           </div>
         </section>
       </div>
