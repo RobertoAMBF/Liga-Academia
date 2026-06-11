@@ -9,6 +9,8 @@ import {
   Copy,
   Dumbbell,
   Droplets,
+  Download,
+  FileText,
   LogOut,
   Plus,
   Trash2,
@@ -47,12 +49,16 @@ type Workout = {
   status: "present" | "absent";
   minutes: number;
   points: number;
+  muscle_group: MuscleGroup | null;
+  muscles: string[];
   water_ml: number;
   water_goal_ml: number | null;
   water_points: number;
   created_at: string;
   league_id: string;
 };
+
+type MuscleGroup = "Superiores" | "Inferiores" | "Full Body";
 
 type Profile = {
   id: string;
@@ -63,6 +69,13 @@ type Profile = {
 };
 
 const today = new Date().toISOString().slice(0, 10);
+const upperMuscles = ["Peito", "Bíceps", "Tríceps", "Costas", "Ombro"];
+const lowerMuscles = ["Posterior de Perna", "Glúteos", "Quadríceps", "Panturrilha"];
+const muscleOptionsByGroup: Record<MuscleGroup, string[]> = {
+  Superiores: upperMuscles,
+  Inferiores: lowerMuscles,
+  "Full Body": [...upperMuscles, ...lowerMuscles]
+};
 
 function pointsFor(status: "present" | "absent", minutes: number) {
   if (status === "absent") return -1;
@@ -255,10 +268,13 @@ function Dashboard({ user }: { user: User }) {
   const [workoutDate, setWorkoutDate] = useState(today);
   const [status, setStatus] = useState<"present" | "absent">("present");
   const [minutes, setMinutes] = useState(60);
+  const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>("Superiores");
+  const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
   const [weightKg, setWeightKg] = useState("");
   const [heightCm, setHeightCm] = useState("");
   const [waterMl, setWaterMl] = useState(2000);
   const [activeTab, setActiveTab] = useState<"league" | "training">("league");
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -269,6 +285,7 @@ function Dashboard({ user }: { user: User }) {
     [profile?.height_cm, profile?.weight_kg]
   );
   const waterPreviewPoints = waterGoalMl ? (waterMl >= waterGoalMl ? 1 : -1) : 0;
+  const availableMuscles = muscleOptionsByGroup[muscleGroup];
 
   useEffect(() => {
     syncProfile();
@@ -283,6 +300,10 @@ function Dashboard({ user }: { user: User }) {
       setHistory([]);
     }
   }, [activeLeague]);
+
+  useEffect(() => {
+    setSelectedMuscles((current) => current.filter((muscle) => availableMuscles.includes(muscle)));
+  }, [availableMuscles]);
 
   async function syncProfile() {
     await supabase.from("profiles").upsert({
@@ -325,13 +346,15 @@ function Dashboard({ user }: { user: User }) {
   }
 
   async function loadLeagueData(leagueId: string) {
+    const historySince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const [standingResponse, historyResponse] = await Promise.all([
       supabase.rpc("get_league_standings", { p_league_id: leagueId }),
       supabase
         .from("workouts")
-        .select("id, workout_date, status, minutes, points, water_ml, water_goal_ml, water_points, created_at, league_id")
+        .select("id, workout_date, status, minutes, points, muscle_group, muscles, water_ml, water_goal_ml, water_points, created_at, league_id")
         .eq("league_id", leagueId)
         .eq("user_id", user.id)
+        .gte("created_at", historySince)
         .order("workout_date", { ascending: false })
         .limit(30)
     ]);
@@ -409,6 +432,8 @@ function Dashboard({ user }: { user: User }) {
         workout_date: workoutDate,
         status,
         minutes: status === "present" ? minutes : 0,
+        muscle_group: status === "present" ? muscleGroup : null,
+        muscles: status === "present" ? selectedMuscles : [],
         water_ml: waterMl,
         water_goal_ml: waterGoalMl,
         points: previewPoints
@@ -476,6 +501,77 @@ function Dashboard({ user }: { user: User }) {
     if (!activeLeague) return;
     await navigator.clipboard.writeText(activeLeague.invite_code);
     setNotice("Código copiado.");
+  }
+
+  function toggleMuscle(muscle: string) {
+    setSelectedMuscles((current) =>
+      current.includes(muscle) ? current.filter((item) => item !== muscle) : [...current, muscle]
+    );
+  }
+
+  function muscleSummary(workout: Workout) {
+    if (workout.status !== "present") return "Não informado";
+    if (workout.muscles.length === 0) return workout.muscle_group ?? "Não informado";
+    return `${workout.muscle_group ?? "Grupo"}: ${workout.muscles.join(", ")}`;
+  }
+
+  function downloadFile(content: string, fileName: string, mimeType: string) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportHistory(format: "csv" | "txt") {
+    if (history.length === 0) {
+      setNotice("Não há histórico recente para exportar.");
+      return;
+    }
+
+    if (format === "csv") {
+      const headers = [
+        "Data",
+        "Status",
+        "Minutos",
+        "Pontos treino",
+        "Água ml",
+        "Pontos água",
+        "Grupo muscular",
+        "Músculos treinados"
+      ];
+      const rows = history.map((item) => [
+        new Date(`${item.workout_date}T12:00:00`).toLocaleDateString("pt-BR"),
+        item.status === "present" ? "Presença" : "Falta",
+        String(item.minutes),
+        String(item.points),
+        String(item.water_ml),
+        String(item.water_points),
+        item.muscle_group ?? "",
+        item.muscles.join(", ")
+      ]);
+      const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`;
+      const content = [headers, ...rows].map((row) => row.map(escapeCsv).join(";")).join("\n");
+      downloadFile(content, "historico-treinos.csv", "text/csv;charset=utf-8");
+      return;
+    }
+
+    const content = history
+      .map((item) =>
+        [
+          `Data: ${new Date(`${item.workout_date}T12:00:00`).toLocaleDateString("pt-BR")}`,
+          `Status: ${item.status === "present" ? "Presença" : "Falta"}`,
+          `Tempo: ${item.minutes} min`,
+          `Pontos treino: ${item.points}`,
+          `Água: ${item.water_ml} ml (${item.water_points > 0 ? "+" : ""}${item.water_points} pt)`,
+          `Treinado: ${muscleSummary(item)}`
+        ].join("\n")
+      )
+      .join("\n\n---\n\n");
+
+    downloadFile(content, "historico-treinos.txt", "text/plain;charset=utf-8");
   }
 
   return (
@@ -778,6 +874,50 @@ function Dashboard({ user }: { user: User }) {
                     </div>
                   </label>
 
+                  <fieldset
+                    className={clsx(
+                      "rounded-lg border border-ink/10 bg-mist p-3",
+                      status === "absent" && "pointer-events-none opacity-45"
+                    )}
+                    disabled={status === "absent"}
+                  >
+                    <legend className="px-1 text-sm font-black">Grupo Muscular Treinado</legend>
+                    <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-white p-1">
+                      {(["Superiores", "Inferiores", "Full Body"] as MuscleGroup[]).map((group) => (
+                        <button
+                          key={group}
+                          type="button"
+                          onClick={() => setMuscleGroup(group)}
+                          className={clsx(
+                            "rounded-md px-2 py-2 text-xs font-black transition",
+                            muscleGroup === group ? "bg-ink text-white shadow-sm" : "text-ink/65 hover:bg-mist"
+                          )}
+                        >
+                          {group}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {availableMuscles.map((muscle) => (
+                        <label
+                          key={muscle}
+                          className={clsx(
+                            "flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm font-bold transition",
+                            selectedMuscles.includes(muscle) ? "border-grass text-grass shadow-sm" : "border-ink/10 text-ink/70"
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            className="accent-grass"
+                            checked={selectedMuscles.includes(muscle)}
+                            onChange={() => toggleMuscle(muscle)}
+                          />
+                          {muscle}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
                   <label>
                     <span className="mb-2 flex items-center gap-2 text-sm font-bold">
                       <Droplets className="h-4 w-4" />
@@ -810,6 +950,36 @@ function Dashboard({ user }: { user: User }) {
             </div>
 
             <Panel title="Histórico de Treinos" icon={<Clock3 className="h-5 w-5" />}>
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-bold text-ink/55">Registros recentes das últimas 24 horas.</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => exportHistory("csv")}
+                    className="inline-flex items-center gap-2 rounded-md border border-ink/10 bg-white px-3 py-2 text-xs font-black text-ink transition hover:border-grass hover:text-grass"
+                  >
+                    <Download className="h-4 w-4" />
+                    CSV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => exportHistory("txt")}
+                    className="inline-flex items-center gap-2 rounded-md border border-ink/10 bg-white px-3 py-2 text-xs font-black text-ink transition hover:border-grass hover:text-grass"
+                  >
+                    <FileText className="h-4 w-4" />
+                    TXT
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryCollapsed((current) => !current)}
+                    className="rounded-md bg-ink px-3 py-2 text-xs font-black text-white transition hover:bg-grass"
+                  >
+                    {historyCollapsed ? "Expandir" : "Minimizar"}
+                  </button>
+                </div>
+              </div>
+
+              {!historyCollapsed && (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {history.map((item) => (
                   <div
@@ -846,10 +1016,14 @@ function Dashboard({ user }: { user: User }) {
                     <div className="mt-3 rounded-md bg-white/70 px-3 py-2 text-sm font-bold text-ink/60">
                       {item.water_ml} ml de água
                     </div>
+                    <div className="mt-2 rounded-md bg-white/70 px-3 py-2 text-sm font-bold text-ink/70">
+                      Treinado: {muscleSummary(item)}
+                    </div>
                   </div>
                 ))}
                 {history.length === 0 && <p className="text-sm text-ink/55">Seu histórico aparece aqui depois do primeiro registro.</p>}
               </div>
+              )}
             </Panel>
               </>
             )}
