@@ -8,7 +8,9 @@ alter table public.profiles
 alter table public.workouts
   add column if not exists water_ml integer not null default 0 check (water_ml between 0 and 10000),
   add column if not exists water_goal_ml integer check (water_goal_ml between 0 and 10000),
-  add column if not exists water_points integer not null default 0;
+  add column if not exists water_points integer not null default 0,
+  add column if not exists muscle_group text check (muscle_group in ('Superiores', 'Inferiores', 'Full Body')),
+  add column if not exists muscles text[] not null default '{}';
 
 create or replace function public.calculate_workout_points()
 returns trigger
@@ -18,6 +20,8 @@ begin
   if new.status = 'absent' then
     new.minutes := 0;
     new.points := -1;
+    new.muscle_group := null;
+    new.muscles := '{}';
   elsif new.minutes < 30 then
     raise exception 'Treino com presenca precisa ter pelo menos 30 minutos.';
   elsif new.minutes >= 120 then
