@@ -43,6 +43,8 @@ create table if not exists public.workouts (
   status public.workout_status not null,
   minutes integer not null default 0 check (minutes between 0 and 1440),
   points integer not null default 0,
+  muscle_group text check (muscle_group in ('Superiores', 'Inferiores', 'Full Body')),
+  muscles text[] not null default '{}',
   water_ml integer not null default 0 check (water_ml between 0 and 10000),
   water_goal_ml integer check (water_goal_ml between 0 and 10000),
   water_points integer not null default 0,
@@ -105,6 +107,8 @@ begin
   if new.status = 'absent' then
     new.minutes := 0;
     new.points := -1;
+    new.muscle_group := null;
+    new.muscles := '{}';
   elsif new.minutes < 30 then
     raise exception 'Treino com presenca precisa ter pelo menos 30 minutos.';
   elsif new.minutes >= 120 then
