@@ -123,7 +123,7 @@ export default function Home() {
 }
 
 function AuthScreen() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "recovery">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -134,6 +134,20 @@ function AuthScreen() {
     event.preventDefault();
     setBusy(true);
     setMessage("");
+
+    if (mode === "recovery") {
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/auth/reset-password`
+        });
+        setMessage(error ? error.message : "Se este e-mail estiver cadastrado, voce recebera um link para redefinir sua senha. Confira tambem o spam.");
+      } catch {
+        setMessage("Nao foi possivel enviar o e-mail. Confira sua conexao e tente novamente.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
 
     const response =
       mode === "login"
@@ -228,7 +242,7 @@ function AuthScreen() {
                 placeholder="voce@email.com"
               />
             </label>
-            <label className="block">
+            {mode !== "recovery" && <label className="block">
               <span className="mb-2 block text-sm font-bold">Senha</span>
               <input
                 className="w-full rounded-lg border border-ink/15 px-4 py-3 outline-none focus:border-grass"
@@ -239,8 +253,21 @@ function AuthScreen() {
                 required
                 placeholder="Minimo de 6 caracteres"
               />
-            </label>
+            </label>}
           </div>
+
+          {mode === "login" && (
+            <button type="button" disabled={busy} onClick={() => { setMode("recovery"); setMessage(""); }}
+              className="mt-4 text-sm font-bold text-grass hover:underline disabled:opacity-60">
+              Esqueci minha senha
+            </button>
+          )}
+          {mode === "recovery" && (
+            <button type="button" disabled={busy} onClick={() => { setMode("login"); setMessage(""); }}
+              className="mt-4 text-sm font-bold text-grass hover:underline disabled:opacity-60">
+              Voltar para entrar
+            </button>
+          )}
 
           {message && <p className="mt-4 rounded-lg bg-mist p-3 text-sm font-semibold text-ink/75">{message}</p>}
 
@@ -249,7 +276,7 @@ function AuthScreen() {
             disabled={busy}
           >
             <Dumbbell className="h-5 w-5" />
-            {busy ? "Aguarde..." : mode === "login" ? "Entrar na liga" : "Criar conta"}
+            {busy ? "Aguarde..." : mode === "login" ? "Entrar na liga" : mode === "recovery" ? "Enviar link de recuperacao" : "Criar conta"}
           </button>
         </form>
       </section>
