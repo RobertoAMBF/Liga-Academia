@@ -228,18 +228,18 @@ function AuthScreen() {
   }
 
   return (
-    <main className="min-h-screen px-5 py-6 sm:px-8">
-      <section className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+    <main className="min-h-screen px-4 py-5 sm:px-8 sm:py-6">
+      <section className="mx-auto grid w-full max-w-6xl items-center gap-6 sm:min-h-[calc(100vh-3rem)] sm:gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-7">
           <div className="inline-flex items-center gap-2 rounded-full border border-grass/20 bg-white/75 px-3 py-2 text-sm font-semibold text-grass">
             <Shield className="h-4 w-4" />
             Supabase Auth + ranking em tempo real
           </div>
           <div className="space-y-5">
-            <h1 className="max-w-2xl text-5xl font-black leading-[0.96] tracking-normal text-ink sm:text-7xl">
+            <h1 className="max-w-2xl text-4xl font-black leading-[0.96] tracking-normal text-ink sm:text-7xl">
               Liga da Academia
             </h1>
-            <p className="max-w-xl text-lg leading-8 text-ink/72">
+            <p className="max-w-xl text-base leading-7 text-ink/72 sm:text-lg sm:leading-8">
               Crie uma liga com seus amigos, registre presença ou falta no treino e acompanhe uma
               tabela estilo Brasileirão com pontuação automática.
             </p>
@@ -250,7 +250,7 @@ function AuthScreen() {
               ["+5", "sequencia"],
               ["-1", "falta"]
             ].map(([value, label]) => (
-              <div key={label} className="rounded-lg border border-ink/80 bg-white/70 p-4 shadow-sm">
+              <div key={label} className="min-w-0 rounded-lg border border-ink/15 bg-white/70 p-3 shadow-sm sm:p-4">
                 <strong className="block text-2xl text-grass">{value}</strong>
                 <span className="text-xs font-semibold uppercase tracking-wide text-ink/55">{label}</span>
               </div>
@@ -716,21 +716,21 @@ function Dashboard({ user }: { user: User }) {
   }
 
   return (
-    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
+    <main className="min-h-screen px-3 py-4 sm:px-6 sm:py-5 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-grass">
               <Dumbbell className="h-5 w-5" />
               Liga da Academia
             </div>
-            <h1 className="mt-2 text-4xl font-black leading-none tracking-normal text-ink sm:text-6xl">
+            <h1 className="mt-2 break-words text-3xl font-black leading-tight tracking-normal text-ink sm:text-6xl">
               Olá, {displayName}
             </h1>
           </div>
           <button
             onClick={() => supabase.auth.signOut()}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-ink/10 bg-white px-4 py-3 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:border-grass/35 hover:shadow-soft"
+            className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-lg border border-ink/10 bg-white px-4 py-3 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:border-grass/35 hover:shadow-soft sm:self-auto"
           >
             <LogOut className="h-4 w-4" />
             Sair
@@ -738,12 +738,12 @@ function Dashboard({ user }: { user: User }) {
         </header>
 
         {notice && (
-          <div className="mb-5 rounded-lg border border-grass/20 bg-white px-4 py-3 text-sm font-bold shadow-sm">
+          <div role="status" className="mb-5 break-words rounded-lg border border-grass/20 bg-white px-4 py-3 text-sm font-bold shadow-sm">
             {notice}
           </div>
         )}
 
-        <div className="mb-5 grid grid-cols-2 gap-2 rounded-lg bg-white p-1 shadow-sm">
+        <div className="sticky top-2 z-20 mb-5 grid grid-cols-2 gap-2 rounded-lg border border-ink/10 bg-white p-1 shadow-sm sm:static">
           <button
             type="button"
             onClick={() => setActiveTab("league")}
@@ -768,8 +768,22 @@ function Dashboard({ user }: { user: User }) {
           </button>
         </div>
 
-        <section className="grid gap-5 lg:grid-cols-[1fr_330px]">
-          <aside className="order-2 space-y-5 lg:order-2">
+        {leagues.length > 0 && (
+          <label className="mb-4 block lg:hidden">
+            <span className="mb-2 block text-sm font-bold">Liga Ativa</span>
+            <select
+              aria-label="Selecionar liga ativa"
+              value={activeLeague?.id ?? ""}
+              onChange={(event) => setActiveLeague(leagues.find((league) => league.id === event.target.value) ?? null)}
+              className="w-full min-w-0 rounded-lg border border-ink/15 bg-white px-3 py-3 text-ink"
+            >
+              {leagues.map((league) => <option key={league.id} value={league.id}>{league.name}</option>)}
+            </select>
+          </label>
+        )}
+
+        <section className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_330px]">
+          <aside className="order-2 min-w-0 space-y-5 lg:order-2">
             {activeTab === "league" ? (
               <>
                 <Panel title="Minhas Ligas" icon={<UsersRound className="h-5 w-5" />}>
@@ -779,7 +793,7 @@ function Dashboard({ user }: { user: User }) {
                       <div
                         key={league.id}
                         className={clsx(
-                          "grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg border p-2 transition hover:-translate-y-0.5 hover:shadow-sm",
+                          "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border p-2 transition hover:-translate-y-0.5 hover:shadow-sm",
                           activeLeague?.id === league.id
                             ? "border-grass bg-mist text-grass shadow-sm"
                             : "border-ink/10 bg-white hover:border-grass/35"
@@ -791,7 +805,7 @@ function Dashboard({ user }: { user: User }) {
                           className="flex min-w-0 items-center justify-between gap-2 rounded-md px-1 py-1 text-left font-bold"
                         >
                           <span className="truncate">{league.name}</span>
-                          <span className="rounded-full bg-white px-2 py-1 text-xs text-ink/65">{league.invite_code}</span>
+                          <span className="shrink-0 rounded-full bg-white px-2 py-1 text-xs text-ink/65">{league.invite_code}</span>
                         </button>
                         <button
                           type="button"
@@ -871,14 +885,14 @@ function Dashboard({ user }: { user: User }) {
             )}
           </aside>
 
-          <div className="order-1 space-y-5 lg:order-1">
+          <div className="order-1 min-w-0 space-y-5 lg:order-1">
             {activeTab === "league" ? (
               <>
             <section className="overflow-hidden rounded-lg bg-strong text-solid shadow-soft">
-              <div className="grid gap-5 p-5 sm:grid-cols-[1fr_auto] sm:items-center sm:p-6">
-                <div>
+              <div className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
+                <div className="min-w-0">
                   <p className="text-xs font-black uppercase tracking-wide text-lime">Liga Ativa</p>
-                  <h2 className="mt-2 text-4xl font-black leading-none">{activeLeague?.name ?? "Nenhuma liga"}</h2>
+                  <h2 className="mt-2 break-words text-2xl font-black leading-tight sm:text-4xl">{activeLeague?.name ?? "Nenhuma liga"}</h2>
                 </div>
                 {activeLeague && (
                   <div className="flex flex-wrap items-center gap-2">
@@ -911,7 +925,34 @@ function Dashboard({ user }: { user: User }) {
               <div className="mb-4 max-w-48">
                 <LeagueStat label="Atletas" value={standings.length} />
               </div>
-              <div className="overflow-x-auto rounded-lg border border-ink/10">
+              <ol aria-label="Classificacao da liga" className="divide-y divide-ink/10 sm:hidden">
+                {standings.map((row, index) => (
+                  <li key={row.user_id} className="py-4 first:pt-0 last:pb-0">
+                    <div className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3">
+                      <span className={clsx("grid h-9 w-9 place-items-center rounded-md font-black", index === 0 ? "bg-lime text-strong" : "bg-mist text-ink/70")}>
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="break-words text-sm font-black">{row.display_name}</p>
+                        <p className="text-xs text-ink/55">{row.presences + row.absences} registros</p>
+                      </div>
+                      <div className="min-w-12 text-center">
+                        <strong className="block text-xl font-black text-grass">{row.points}</strong>
+                        <span className="text-[10px] font-bold uppercase text-ink/55">Pontos</span>
+                      </div>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-3 gap-x-3 gap-y-2 text-xs">
+                      <div><dt className="text-ink/55">Presenças</dt><dd className="font-black text-grass">{row.presences}</dd></div>
+                      <div><dt className="text-ink/55">Faltas</dt><dd className="font-black text-clay">{row.absences}</dd></div>
+                      <div><dt className="text-ink/55">Minutos</dt><dd className="font-bold">{row.total_minutes}</dd></div>
+                      <div><dt className="text-ink/55">Água</dt><dd className="font-bold">{row.hydration_points > 0 ? "+" : ""}{row.hydration_points}</dd></div>
+                      <div><dt className="text-ink/55">Sequência</dt><dd className="font-bold">+{row.streak_bonus}</dd></div>
+                    </dl>
+                  </li>
+                ))}
+                {standings.length === 0 && <li className="py-6 text-center text-sm text-ink/55">Sem treinos registrados nesta liga.</li>}
+              </ol>
+              <div className="hidden overflow-x-auto rounded-lg border border-ink/10 sm:block">
                 <table className="w-full min-w-[740px] border-collapse text-sm">
                   <thead className="bg-strong text-left text-[11px] uppercase tracking-wide text-solid/70">
                     <tr>
@@ -972,7 +1013,7 @@ function Dashboard({ user }: { user: User }) {
               </>
             ) : (
               <>
-            <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
+            <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
               <Panel title="Registrar Treino" icon={<CalendarDays className="h-5 w-5" />}>
                 <form onSubmit={saveWorkout} className="grid gap-4">
                   <label>
@@ -1033,7 +1074,15 @@ function Dashboard({ user }: { user: User }) {
                     disabled={status === "absent"}
                   >
                     <legend className="px-1 text-sm font-black">Grupo Muscular Treinado</legend>
-                    <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-white p-1">
+                    <select
+                      aria-label="Grupo Muscular Treinado"
+                      className="mt-3 w-full min-w-0 rounded-md border border-ink/15 bg-white px-3 py-3 sm:hidden"
+                      value={muscleGroup}
+                      onChange={(event) => setMuscleGroup(event.target.value as MuscleGroup)}
+                    >
+                      {(["Superiores", "Inferiores", "Full Body"] as MuscleGroup[]).map((group) => <option key={group}>{group}</option>)}
+                    </select>
+                    <div className="mt-3 hidden grid-cols-3 gap-2 rounded-lg bg-white p-1 sm:grid">
                       {(["Superiores", "Inferiores", "Full Body"] as MuscleGroup[]).map((group) => (
                         <button
                           key={group}
@@ -1048,22 +1097,22 @@ function Dashboard({ user }: { user: User }) {
                         </button>
                       ))}
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="mt-3 grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                       {availableMuscles.map((muscle) => (
                         <label
                           key={muscle}
                           className={clsx(
-                            "flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm font-bold transition",
+                            "flex min-w-0 items-center gap-2 break-words rounded-md border bg-white px-2 py-2 text-sm font-bold transition",
                             selectedMuscles.includes(muscle) ? "border-grass text-grass shadow-sm" : "border-ink/10 text-ink/70"
                           )}
                         >
                           <input
                             type="checkbox"
-                            className="accent-grass"
+                            className="shrink-0 accent-grass"
                             checked={selectedMuscles.includes(muscle)}
                             onChange={() => toggleMuscle(muscle)}
                           />
-                          {muscle}
+                          <span className="min-w-0 break-words">{muscle}</span>
                         </label>
                       ))}
                     </div>
@@ -1137,7 +1186,7 @@ function Dashboard({ user }: { user: User }) {
                     key={item.id}
                     className="rounded-lg border border-ink/10 bg-mist p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-grass/30 hover:bg-white hover:shadow-soft"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <span className="text-[11px] font-black uppercase tracking-wide text-ink/45">Rodada</span>
                         <strong className="block text-lg text-ink">
@@ -1167,7 +1216,7 @@ function Dashboard({ user }: { user: User }) {
                     <div className="mt-3 rounded-md bg-white/70 px-3 py-2 text-sm font-bold text-ink/60">
                       {item.water_ml} ml de água
                     </div>
-                    <div className="mt-2 rounded-md bg-white/70 px-3 py-2 text-sm font-bold text-ink/70">
+                    <div className="mt-2 break-words rounded-md bg-white/70 px-3 py-2 text-sm font-bold text-ink/70">
                       Treinado: {muscleSummary(item)}
                     </div>
                   </div>
@@ -1199,12 +1248,12 @@ function Panel({
   return (
     <section
       className={clsx(
-        "rounded-lg border border-ink/80 bg-white p-4 shadow-sm sm:p-5",
+        "min-w-0 rounded-lg border border-ink/15 bg-white p-4 shadow-sm sm:p-5",
         featured && "shadow-soft"
       )}
     >
-      <h2 className={clsx("mb-4 flex items-center gap-2 font-black", featured ? "text-2xl" : "text-lg")}>
-        <span className="text-grass">{icon}</span>
+      <h2 className={clsx("mb-4 flex items-center gap-2 font-black", featured ? "text-xl sm:text-2xl" : "text-lg")}>
+        <span className="shrink-0 text-grass">{icon}</span>
         {title}
       </h2>
       {children}

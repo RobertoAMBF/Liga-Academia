@@ -58,9 +58,36 @@ a:focus-visible {
 input,
 button,
 select {
-  font: inherit;
+  font-family: inherit;
 }
 
 button {
   touch-action: manipulation;
+}
+
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="range"]),
+  select {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  input[type="date"] {
+    display: block;
+  }
+
+  input[type="range"] {
+    height: 44px;
+  }
+
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  button {
+    min-height: 44px;
+  }
 }
