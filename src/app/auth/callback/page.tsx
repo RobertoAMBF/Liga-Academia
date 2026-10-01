@@ -4,6 +4,7 @@ import { Dumbbell } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { pendingInvite } from "@/lib/league-invite";
 
 export default function AuthCallbackPage() {
   return (
@@ -34,6 +35,7 @@ function AuthCallback() {
     });
 
     async function confirmEmail() {
+      const invite = pendingInvite();
       const code = searchParams.get("code");
 
       if (code) {
@@ -45,7 +47,7 @@ function AuthCallback() {
       }
 
       await supabase.auth.getSession();
-      if (!recovering) router.replace("/");
+      if (!recovering) router.replace(invite ? `/?invite=${encodeURIComponent(invite)}` : "/");
     }
 
     confirmEmail();
