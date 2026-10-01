@@ -646,7 +646,8 @@ function Dashboard({ user }: { user: User }) {
         item.muscles.join(", ")
       ]);
       const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`;
-      const content = [headers, ...rows].map((row) => row.map(escapeCsv).join(";")).join("\n");
+      // The UTF-8 BOM lets Excel detect accents when opening the CSV directly.
+      const content = "\uFEFF" + [headers, ...rows].map((row) => row.map(escapeCsv).join(";")).join("\r\n");
       downloadFile(content, "historico-treinos.csv", "text/csv;charset=utf-8");
       return;
     }
