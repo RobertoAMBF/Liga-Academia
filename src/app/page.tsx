@@ -96,13 +96,23 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const recoveryType = new URLSearchParams(window.location.hash.slice(1)).get("type");
+    if (recoveryType === "recovery") {
+      window.location.replace(`/auth/reset-password${window.location.search}${window.location.hash}`);
+      return;
+    }
+
+    const { data } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, nextSession) => {
+      if (event === "PASSWORD_RECOVERY") {
+        window.location.replace("/auth/reset-password");
+        return;
+      }
+      setSession(nextSession);
+    });
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, nextSession) => {
-      setSession(nextSession);
     });
 
     return () => data.subscription.unsubscribe();
