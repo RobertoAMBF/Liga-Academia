@@ -79,6 +79,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 ## Abas do dashboard
 
+O botao de tema alterna entre modo claro e escuro em todas as telas, incluindo login e recuperacao de senha. A preferencia fica salva no navegador; na primeira visita, o aplicativo acompanha o tema do sistema. O modo escuro usa fundo grafite, paineis escuros, texto claro e destaques verdes.
+
 - **Liga**: Classificacao, Minhas Ligas, Criar Liga e Entrar por Codigo.
 - **Treinos**: Registrar Treino, Historico de Treinos e Perfil e Agua.
 

@@ -5,11 +5,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#17201d",
-        grass: "#2f8f46",
+        ink: "rgb(var(--ink) / <alpha-value>)",
+        white: "rgb(var(--surface) / <alpha-value>)",
+        solid: "#ffffff",
+        strong: "#17201d",
+        grass: "rgb(var(--grass) / <alpha-value>)",
         lime: "#c6f05a",
-        clay: "#d86836",
-        mist: "#eef4ef"
+        clay: "rgb(var(--clay) / <alpha-value>)",
+        mist: "rgb(var(--mist) / <alpha-value>)"
       },
       boxShadow: {
         soft: "0 18px 45px rgba(23, 32, 29, 0.12)"
