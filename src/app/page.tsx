@@ -203,7 +203,7 @@ function AuthScreen() {
               ["+5", "sequencia"],
               ["-1", "falta"]
             ].map(([value, label]) => (
-              <div key={label} className="rounded-lg border border-white/80 bg-white/70 p-4 shadow-sm">
+              <div key={label} className="rounded-lg border border-ink/80 bg-white/70 p-4 shadow-sm">
                 <strong className="block text-2xl text-grass">{value}</strong>
                 <span className="text-xs font-semibold uppercase tracking-wide text-ink/55">{label}</span>
               </div>
@@ -282,7 +282,7 @@ function AuthScreen() {
           {message && <p className="mt-4 rounded-lg bg-mist p-3 text-sm font-semibold text-ink/75">{message}</p>}
 
           <button
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-grass px-5 py-3 font-black text-white shadow-sm transition hover:bg-ink disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-grass px-5 py-3 font-black text-solid shadow-sm transition hover:bg-strong disabled:cursor-not-allowed disabled:opacity-60"
             disabled={busy}
           >
             <Dumbbell className="h-5 w-5" />
@@ -645,7 +645,7 @@ function Dashboard({ user }: { user: User }) {
             onClick={() => setActiveTab("league")}
             className={clsx(
               "inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-black transition",
-              activeTab === "league" ? "bg-ink text-white shadow-sm" : "text-ink/65 hover:bg-mist"
+              activeTab === "league" ? "bg-strong text-solid shadow-sm" : "text-ink/65 hover:bg-mist"
             )}
           >
             <Trophy className="h-4 w-4" />
@@ -656,7 +656,7 @@ function Dashboard({ user }: { user: User }) {
             onClick={() => setActiveTab("training")}
             className={clsx(
               "inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-black transition",
-              activeTab === "training" ? "bg-ink text-white shadow-sm" : "text-ink/65 hover:bg-mist"
+              activeTab === "training" ? "bg-strong text-solid shadow-sm" : "text-ink/65 hover:bg-mist"
             )}
           >
             <Dumbbell className="h-4 w-4" />
@@ -693,7 +693,7 @@ function Dashboard({ user }: { user: User }) {
                           type="button"
                           aria-label={`Sair da liga ${league.name}`}
                           onClick={() => leaveLeague(league)}
-                          className="rounded-md bg-white p-2 text-clay shadow-sm transition hover:bg-clay hover:text-white disabled:opacity-50"
+                          className="rounded-md bg-white p-2 text-clay shadow-sm transition hover:bg-clay hover:text-solid disabled:opacity-50"
                           disabled={busy}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -712,7 +712,7 @@ function Dashboard({ user }: { user: User }) {
                       required
                       placeholder="Nome da liga"
                     />
-                    <button className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-black text-white" disabled={busy}>
+                    <button className="w-full rounded-lg bg-strong px-4 py-3 text-sm font-black text-solid" disabled={busy}>
                       Criar
                     </button>
                   </form>
@@ -727,7 +727,7 @@ function Dashboard({ user }: { user: User }) {
                       required
                       placeholder="ABC123"
                     />
-                    <button className="w-full rounded-lg bg-grass px-4 py-3 text-sm font-black text-white" disabled={busy}>
+                    <button className="w-full rounded-lg bg-grass px-4 py-3 text-sm font-black text-solid" disabled={busy}>
                       Entrar
                     </button>
                   </form>
@@ -759,7 +759,7 @@ function Dashboard({ user }: { user: User }) {
                   <div className="rounded-lg bg-mist p-3 text-sm font-bold text-ink/70">
                     Meta Diária: {waterGoalMl ? `${waterGoalMl} ml (${(waterGoalMl / 1000).toFixed(2)} L)` : "preencha peso e altura"}
                   </div>
-                  <button className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-black text-white" disabled={busy}>
+                  <button className="w-full rounded-lg bg-strong px-4 py-3 text-sm font-black text-solid" disabled={busy}>
                     Salvar perfil
                   </button>
                 </form>
@@ -770,7 +770,7 @@ function Dashboard({ user }: { user: User }) {
           <div className="order-1 space-y-5 lg:order-1">
             {activeTab === "league" ? (
               <>
-            <section className="overflow-hidden rounded-lg bg-ink text-white shadow-soft">
+            <section className="overflow-hidden rounded-lg bg-strong text-solid shadow-soft">
               <div className="grid gap-5 p-5 sm:grid-cols-[1fr_auto] sm:items-center sm:p-6">
                 <div>
                   <p className="text-xs font-black uppercase tracking-wide text-lime">Liga Ativa</p>
@@ -779,14 +779,14 @@ function Dashboard({ user }: { user: User }) {
                 {activeLeague && (
                   <button
                     onClick={copyInvite}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-ink shadow-sm transition hover:-translate-y-0.5 hover:bg-lime"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-ink shadow-sm transition hover:-translate-y-0.5 hover:bg-lime hover:text-strong"
                   >
                     <Copy className="h-4 w-4" />
                     {activeLeague.invite_code}
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-3 border-t border-white/10 bg-white/5 text-center">
+              <div className="grid grid-cols-3 border-t border-ink/10 bg-white/5 text-center">
                 <ScoreHint value="+3" label="30 min" />
                 <ScoreHint value="+4" label="60 min" />
                 <ScoreHint value="+5" label="120 min" />
@@ -799,7 +799,7 @@ function Dashboard({ user }: { user: User }) {
               </div>
               <div className="overflow-x-auto rounded-lg border border-ink/10">
                 <table className="w-full min-w-[740px] border-collapse text-sm">
-                  <thead className="bg-ink text-left text-[11px] uppercase tracking-wide text-white/70">
+                  <thead className="bg-strong text-left text-[11px] uppercase tracking-wide text-solid/70">
                     <tr>
                       <th className="px-4 py-3">Pos</th>
                       <th className="py-3">Atleta</th>
@@ -818,7 +818,7 @@ function Dashboard({ user }: { user: User }) {
                           <span
                             className={clsx(
                               "inline-grid h-9 w-9 place-items-center rounded-lg text-sm font-black",
-                              index === 0 ? "bg-lime text-ink" : "bg-mist text-ink/70"
+                              index === 0 ? "bg-lime text-strong" : "bg-mist text-ink/70"
                             )}
                           >
                             {index + 1}
@@ -831,7 +831,7 @@ function Dashboard({ user }: { user: User }) {
                           </div>
                         </td>
                         <td className="text-center">
-                          <span className="inline-flex min-w-14 justify-center rounded-full bg-grass px-3 py-1 text-base font-black text-white">
+                          <span className="inline-flex min-w-14 justify-center rounded-full bg-grass px-3 py-1 text-base font-black text-solid">
                             {row.points}
                           </span>
                         </td>
@@ -927,7 +927,7 @@ function Dashboard({ user }: { user: User }) {
                           onClick={() => setMuscleGroup(group)}
                           className={clsx(
                             "rounded-md px-2 py-2 text-xs font-black transition",
-                            muscleGroup === group ? "bg-ink text-white shadow-sm" : "text-ink/65 hover:bg-mist"
+                            muscleGroup === group ? "bg-strong text-solid shadow-sm" : "text-ink/65 hover:bg-mist"
                           )}
                         >
                           {group}
@@ -976,7 +976,7 @@ function Dashboard({ user }: { user: User }) {
                   </label>
 
                   <button
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-grass px-4 py-3 font-black text-white disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-grass px-4 py-3 font-black text-solid disabled:opacity-60"
                     disabled={busy || !activeLeague}
                   >
                     <Dumbbell className="h-5 w-5" />
@@ -1009,7 +1009,7 @@ function Dashboard({ user }: { user: User }) {
                   <button
                     type="button"
                     onClick={() => setHistoryCollapsed((current) => !current)}
-                    className="rounded-md bg-ink px-3 py-2 text-xs font-black text-white transition hover:bg-grass"
+                    className="rounded-md bg-strong px-3 py-2 text-xs font-black text-solid transition hover:bg-grass"
                   >
                     {historyCollapsed ? "Expandir" : "Minimizar"}
                   </button>
@@ -1031,14 +1031,14 @@ function Dashboard({ user }: { user: User }) {
                         </strong>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={clsx("rounded-full px-2.5 py-1 text-xs font-black", item.status === "present" ? "bg-grass text-white" : "bg-clay text-white")}>
+                        <span className={clsx("rounded-full px-2.5 py-1 text-xs font-black", item.status === "present" ? "bg-grass text-solid" : "bg-clay text-solid")}>
                           {item.status === "present" ? "Presença" : "Falta"}
                         </span>
                         <button
                           type="button"
                           aria-label="Excluir treino"
                           onClick={() => deleteWorkout(item.id)}
-                          className="rounded-md bg-white p-2 text-clay shadow-sm transition hover:bg-clay hover:text-white"
+                          className="rounded-md bg-white p-2 text-clay shadow-sm transition hover:bg-clay hover:text-solid"
                           disabled={busy}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -1085,7 +1085,7 @@ function Panel({
   return (
     <section
       className={clsx(
-        "rounded-lg border border-white/80 bg-white p-4 shadow-sm sm:p-5",
+        "rounded-lg border border-ink/80 bg-white p-4 shadow-sm sm:p-5",
         featured && "shadow-soft"
       )}
     >
@@ -1102,7 +1102,7 @@ function ScoreHint({ value, label }: { value: string; label: string }) {
   return (
     <div className="px-3 py-4">
       <strong className="block text-xl font-black text-lime">{value}</strong>
-      <span className="text-[11px] font-black uppercase tracking-wide text-white/55">{label}</span>
+      <span className="text-[11px] font-black uppercase tracking-wide text-solid/55">{label}</span>
     </div>
   );
 }
