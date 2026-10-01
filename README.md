@@ -112,7 +112,7 @@ O historico mostra data, presenca ou falta, duracao, pontos do treino, agua toma
 
 O painel carrega ate 30 registros criados nas ultimas 24 horas. Essa janela e calculada quando os dados sao carregados: os registros antigos deixam de aparecer no painel, mas continuam no banco e na pontuacao da liga.
 
-Os botoes CSV e TXT exportam os registros carregados da liga ativa. O CSV usa ponto e virgula como separador; o TXT pode ser aberto no Bloco de Notas. Excluir um treino remove o registro do banco e recalcula a classificacao.
+Os botoes CSV e TXT exportam os registros carregados da liga ativa. O CSV usa ponto e virgula como separador, UTF-8 com BOM para preservar os acentos no Excel e quebras de linha do Windows; o TXT pode ser aberto no Bloco de Notas. Excluir um treino remove o registro do banco e recalcula a classificacao.
 
 ## Atualizar um projeto existente
 
@@ -125,6 +125,16 @@ Para um banco que ja esta em uso, execute os arquivos necessarios no SQL Editor 
 Para um projeto novo, execute `supabase/schema.sql`. Depois de atualizar o banco, envie os arquivos do aplicativo para o GitHub e aguarde o novo deploy da Vercel. Para as ultimas alteracoes de interface, o arquivo principal e `src/app/page.tsx`; mantenha seu caminho ao substituir no repositorio.
 
 ## Configuracao de autenticacao
+
+### Confirmacao obrigatoria de e-mail
+
+No painel Supabase, abra Authentication > Sign In / Providers > Email, ative **Confirm email** e salve. Essa configuracao no servidor exige a confirmacao antes do primeiro login; alterar apenas a interface nao protege a API publica. Contas que ja foram confirmadas, inclusive automaticamente quando essa opcao estava desligada, nao passam a exigir nova confirmacao.
+
+Depois do cadastro, a tela pede para verificar a caixa de entrada e o spam. O botao Reenviar confirmacao envia outro link e tem uma espera de 60 segundos; os limites reais continuam sendo impostos pelo Supabase. No login, um e-mail nao confirmado abre a mesma etapa. Os convites de liga continuam sendo preservados ate a confirmacao.
+
+Mantenha as URLs de `/auth/callback` e de convite permitidas em Redirect URLs. O template de confirmacao deve usar o link de confirmacao fornecido pelo Supabase, normalmente `{{ .ConfirmationURL }}`, para validar a conta antes de voltar ao site. Para enviar e-mails a todos os amigos, configure um provedor SMTP proprio; o envio padrao do Supabase tem restricoes e limites baixos.
+
+A confirmacao verifica o acesso ao e-mail, mas nao impede bots de tentar criar cadastros pendentes ou usar e-mails que controlam. Para protecao adicional, configure CAPTCHA (Turnstile ou hCaptcha) no Supabase e integre o widget no aplicativo antes de ativar a exigencia, enviando `captchaToken` nas chamadas de autenticacao. O aplicativo ainda nao integra CAPTCHA; ativa-lo agora no painel pode bloquear cadastro, login e recuperacao de senha. Nao e necessaria migracao SQL para exigir confirmacao de e-mail.
 
 A tela de login inclui **Esqueci minha senha**. Informe o e-mail, abra o link enviado pelo Supabase e preencha a nova senha e sua confirmacao. A pagina `/auth/reset-password` valida a sessao, informa links expirados e atualiza a senha pelo Supabase Auth.
 
