@@ -103,7 +103,7 @@ export default function ResetPasswordPage() {
                 value={confirmation} onChange={(event) => setConfirmation(event.target.value)}
                 className="mt-2 w-full rounded-lg border border-ink/15 px-3 py-3 outline-none focus:border-grass" />
             </label>
-            <button disabled={busy} className="w-full rounded-lg bg-grass px-4 py-3 font-black text-white transition hover:bg-ink disabled:opacity-60">
+            <button disabled={busy} className="w-full rounded-lg bg-grass px-4 py-3 font-black text-solid transition hover:bg-strong disabled:opacity-60">
               {busy ? "Salvando..." : "Salvar nova senha"}
             </button>
           </form>
