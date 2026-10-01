@@ -16,7 +16,6 @@ Aplicativo web em Next.js, TypeScript, Tailwind CSS e Supabase para criar ligas 
 
 ## Regras de pontos
 
-- Presença: `+3`
 - Falta: `-1`
 - Treino de 30 minutos ou mais: `+3`
 - Treino de 60 minutos ou mais: `+4`
@@ -77,6 +76,64 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 - `supabase/schema.sql`: tabelas, funções, triggers e políticas RLS.
 - `supabase/update-water-and-delete.sql`: atualização para projetos que já tinham o schema anterior.
 - `.env.example`: variáveis necessárias para local e Vercel.
+
+## Abas do dashboard
+
+- **Liga**: Classificacao, Minhas Ligas, Criar Liga e Entrar por Codigo.
+- **Treinos**: Registrar Treino, Historico de Treinos e Perfil e Agua.
+
+A classificacao destaca posicao, pontos, presencas, faltas, minutos, agua e bonus de sequencia. Acima da tabela aparece apenas o contador de atletas.
+
+Em Minhas Ligas, o botao de lixeira permite sair da liga apos confirmar. A liga sai da lista do usuario; os registros de treino continuam no banco. Ao entrar novamente pelo codigo, esses registros voltam a contribuir para sua classificacao.
+
+## Grupo muscular treinado
+
+Ao registrar Presenca, o usuario pode escolher uma categoria e selecionar varios musculos:
+
+- **Superiores**: Peito, Biceps, Triceps, Costas e Ombro.
+- **Inferiores**: Posterior de Perna, Gluteos, Quadriceps e Panturrilha.
+- **Full Body**: todas as opcoes de Superiores e Inferiores.
+
+Os musculos ficam vinculados a data do registro de treino. Ao trocar a categoria, as selecoes que nao pertencem a nova categoria sao removidas. Em Falta, o campo fica desabilitado e o banco limpa as informacoes musculares do registro.
+
+## Historico e exportacao
+
+O historico mostra data, presenca ou falta, duracao, pontos do treino, agua tomada, pontos de agua, grupo muscular e musculos treinados. Pode ser minimizado ou expandido, e cada registro pode ser excluido apos confirmacao.
+
+O painel carrega ate 30 registros criados nas ultimas 24 horas. Essa janela e calculada quando os dados sao carregados: os registros antigos deixam de aparecer no painel, mas continuam no banco e na pontuacao da liga.
+
+Os botoes CSV e TXT exportam os registros carregados da liga ativa. O CSV usa ponto e virgula como separador; o TXT pode ser aberto no Bloco de Notas. Excluir um treino remove o registro do banco e recalcula a classificacao.
+
+## Atualizar um projeto existente
+
+Para um banco que ja esta em uso, execute os arquivos necessarios no SQL Editor do Supabase, conforme as funcionalidades ainda nao aplicadas:
+
+1. `supabase/update-water-and-delete.sql`: regras de 30/60/120 minutos, perfil, agua, exclusao e classificacao atualizada.
+2. `supabase/update-leave-league.sql`: funcao para sair de uma liga.
+3. `supabase/update-muscle-history.sql`: campos de grupo muscular e musculos, com limpeza automatica em Falta.
+
+Para um projeto novo, execute `supabase/schema.sql`. Depois de atualizar o banco, envie os arquivos do aplicativo para o GitHub e aguarde o novo deploy da Vercel. Para as ultimas alteracoes de interface, o arquivo principal e `src/app/page.tsx`; mantenha seu caminho ao substituir no repositorio.
+
+## Configuracao de autenticacao
+
+A tela de login inclui **Esqueci minha senha**. Informe o e-mail, abra o link enviado pelo Supabase e preencha a nova senha e sua confirmacao. A pagina `/auth/reset-password` valida a sessao, informa links expirados e atualiza a senha pelo Supabase Auth.
+
+Se um link de recuperacao retornar para a pagina inicial ou `/auth/callback`, o aplicativo reconhece `type=recovery` ou o evento `PASSWORD_RECOVERY` e abre a tela de nova senha. Confirme que a URL de recuperacao esta permitida no Supabase antes de pedir um novo e-mail. Links antigos mantem o destino com que foram enviados.
+
+Em Authentication > URL Configuration > Redirect URLs, adicione tambem:
+
+```text
+http://localhost:3000/auth/reset-password
+https://liga-da-academia.vercel.app/auth/reset-password
+```
+
+Se usar outro dominio, adicione a mesma rota nesse dominio. O envio depende do servico de e-mail configurado no Supabase e dos limites desse servico. Nao e necessario executar uma migracao SQL para recuperar senhas.
+
+Use a URL base do projeto Supabase, sem `/rest/v1/`. A chave deve ser a publica do mesmo projeto (publishable ou anon), nunca a secret ou service_role. Na Vercel, crie duas variaveis separadas: nome em Key e apenas o valor em Value. Alteracoes de variaveis publicas exigem um novo deploy.
+
+Configure Site URL com a URL principal do aplicativo e inclua `/auth/callback` nas URLs de redirecionamento permitidas. Para uso local, inclua `http://localhost:3000/auth/callback`; para producao, inclua `https://SEU-DOMINIO/auth/callback`.
+
+No PowerShell, caso `npm.ps1` seja bloqueado, use `npm.cmd install` e `npm.cmd run dev`. O arquivo `.env.local` deve permanecer local e nao deve ser enviado ao GitHub.
 
 ## Observações
 
