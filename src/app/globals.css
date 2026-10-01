@@ -3,8 +3,23 @@
 @tailwind utilities;
 
 :root {
+  --ink: 23 32 29;
+  --surface: 255 255 255;
+  --grass: 47 143 70;
+  --clay: 196 75 75;
+  --mist: 238 244 239;
   color-scheme: light;
   background: #eef4ef;
+}
+
+:root[data-theme="dark"] {
+  --ink: 235 240 237;
+  --surface: 31 35 33;
+  --grass: 38 125 61;
+  --clay: 244 132 132;
+  --mist: 42 48 44;
+  color-scheme: dark;
+  background: #131614;
 }
 
 * {
@@ -14,12 +29,30 @@
 body {
   margin: 0;
   min-height: 100vh;
-  color: #17201d;
+  color: rgb(var(--ink));
   background:
     radial-gradient(circle at top left, rgba(198, 240, 90, 0.45), transparent 30rem),
     linear-gradient(135deg, #f7faf5 0%, #eef4ef 52%, #e3efe6 100%);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root[data-theme="dark"] body {
+  background: #131614;
+}
+
+:root[data-theme="dark"] .text-grass {
+  color: #81df9c;
+}
+
+input::placeholder {
+  color: rgb(var(--ink) / 0.5);
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgb(var(--grass));
+  outline-offset: 3px;
 }
 
 input,
