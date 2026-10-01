@@ -11,6 +11,7 @@ import {
   Droplets,
   Download,
   FileText,
+  Link2,
   LogOut,
   Plus,
   Trash2,
@@ -21,8 +22,9 @@ import {
   XCircle
 } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { clearInvite, inviteLink, pendingInvite } from "@/lib/league-invite";
 
 type League = {
   id: string;
@@ -96,6 +98,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    pendingInvite();
     const recoveryType = new URLSearchParams(window.location.hash.slice(1)).get("type");
     if (recoveryType === "recovery") {
       window.location.replace(`/auth/reset-password${window.location.search}${window.location.hash}`);
@@ -140,6 +143,13 @@ function AuthScreen() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    if (pendingInvite()) {
+      setMode("signup");
+      setMessage("Voce recebeu um convite para uma liga. Cadastre-se ou entre na sua conta para participar.");
+    }
+  }, []);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -159,6 +169,9 @@ function AuthScreen() {
       return;
     }
 
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    const invitation = pendingInvite();
+    if (invitation) callbackUrl.searchParams.set("invite", invitation);
     const response =
       mode === "login"
         ? await supabase.auth.signInWithPassword({ email, password })
@@ -167,7 +180,7 @@ function AuthScreen() {
             password,
             options: {
               data: { display_name: name || email.split("@")[0] },
-              emailRedirectTo: `${window.location.origin}/auth/callback`
+              emailRedirectTo: callbackUrl.toString()
             }
           });
 
@@ -314,6 +327,7 @@ function Dashboard({ user }: { user: User }) {
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const initialization = useRef<Promise<void> | null>(null);
 
   const displayName = user.user_metadata.display_name || user.email?.split("@")[0] || "Atleta";
   const previewPoints = useMemo(() => pointsFor(status, minutes), [minutes, status]);
@@ -325,8 +339,34 @@ function Dashboard({ user }: { user: User }) {
   const availableMuscles = muscleOptionsByGroup[muscleGroup];
 
   useEffect(() => {
-    syncProfile();
-    loadLeagues();
+    // Finish profile creation before inserting an invited league membership.
+    if (!initialization.current) {
+      initialization.current = (async () => {
+        try {
+          await syncProfile();
+          const code = pendingInvite();
+          if (code) {
+            setBusy(true);
+            setInviteCode(code);
+            const { error } = await supabase.rpc("join_league_by_code", { p_invite_code: code });
+            if (error) {
+              setNotice(`Nao foi possivel aceitar o convite: ${error.message}`);
+            } else {
+              clearInvite();
+              setInviteCode("");
+              setNotice("Convite aceito. Voce ja participa da liga!");
+            }
+            await loadLeagues(error ? undefined : code);
+          } else {
+            await loadLeagues();
+          }
+        } catch {
+          setNotice("Nao foi possivel carregar suas ligas. Confira a conexao e atualize a pagina.");
+        } finally {
+          setBusy(false);
+        }
+      })();
+    }
   }, []);
 
   useEffect(() => {
@@ -365,7 +405,7 @@ function Dashboard({ user }: { user: User }) {
     }
   }
 
-  async function loadLeagues() {
+  async function loadLeagues(preferredCode?: string) {
     const { data, error } = await supabase
       .from("league_members")
       .select("leagues(id, name, invite_code, created_at)")
@@ -379,7 +419,7 @@ function Dashboard({ user }: { user: User }) {
 
     const nextLeagues = (data ?? []).map((item) => item.leagues).filter(Boolean) as unknown as League[];
     setLeagues(nextLeagues);
-    setActiveLeague((current) => nextLeagues.find((league) => league.id === current?.id) ?? nextLeagues[0] ?? null);
+    setActiveLeague((current) => nextLeagues.find((league) => league.invite_code === preferredCode) ?? nextLeagues.find((league) => league.id === current?.id) ?? nextLeagues[0] ?? null);
   }
 
   async function loadLeagueData(leagueId: string) {
@@ -427,6 +467,7 @@ function Dashboard({ user }: { user: User }) {
 
     if (error) setNotice(error.message);
     else {
+      if (pendingInvite() === inviteCode.trim().toUpperCase()) clearInvite();
       setInviteCode("");
       await loadLeagues();
       setNotice("Você entrou na liga.");
@@ -536,8 +577,23 @@ function Dashboard({ user }: { user: User }) {
 
   async function copyInvite() {
     if (!activeLeague) return;
-    await navigator.clipboard.writeText(activeLeague.invite_code);
-    setNotice("Código copiado.");
+    try {
+      await navigator.clipboard.writeText(activeLeague.invite_code);
+      setNotice("Código copiado.");
+    } catch {
+      setNotice("Nao foi possivel copiar. Selecione o codigo da liga e copie manualmente.");
+    }
+  }
+
+  async function copyInviteLink() {
+    if (!activeLeague) return;
+    const link = inviteLink(window.location.origin, activeLeague.invite_code);
+    try {
+      await navigator.clipboard.writeText(link);
+      setNotice("Link de convite copiado. Envie para seus amigos.");
+    } catch {
+      setNotice(`Copie o link de convite: ${link}`);
+    }
   }
 
   function toggleMuscle(muscle: string) {
@@ -777,6 +833,7 @@ function Dashboard({ user }: { user: User }) {
                   <h2 className="mt-2 text-4xl font-black leading-none">{activeLeague?.name ?? "Nenhuma liga"}</h2>
                 </div>
                 {activeLeague && (
+                  <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={copyInvite}
                     className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-ink shadow-sm transition hover:-translate-y-0.5 hover:bg-lime hover:text-strong"
@@ -784,6 +841,15 @@ function Dashboard({ user }: { user: User }) {
                     <Copy className="h-4 w-4" />
                     {activeLeague.invite_code}
                   </button>
+                  <button
+                    onClick={copyInviteLink}
+                    title="Copiar link de convite"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-grass px-4 py-3 text-sm font-black text-solid transition hover:bg-strong"
+                  >
+                    <Link2 className="h-4 w-4" />
+                    Convidar
+                  </button>
+                  </div>
                 )}
               </div>
               <div className="grid grid-cols-3 border-t border-ink/10 bg-white/5 text-center">
