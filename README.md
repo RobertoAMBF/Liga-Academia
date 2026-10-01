@@ -88,6 +88,14 @@ A classificacao destaca posicao, pontos, presencas, faltas, minutos, agua e bonu
 
 Em Minhas Ligas, o botao de lixeira permite sair da liga apos confirmar. A liga sai da lista do usuario; os registros de treino continuam no banco. Ao entrar novamente pelo codigo, esses registros voltam a contribuir para sua classificacao.
 
+## Convites por link
+
+Na aba Liga, o botao **Convidar** copia um link da liga ativa, por exemplo `https://liga-da-academia.vercel.app/?invite=ABC123`. O codigo continua disponivel para copiar e entrar manualmente.
+
+Ao abrir o link com uma sessao ativa, o usuario entra na liga automaticamente e ela fica selecionada. Sem sessao, aparece o cadastro; quem ja tem conta pode escolher Entrar. O convite fica salvo no navegador e e aceito depois da autenticacao. Se houver confirmacao de e-mail, o convite tambem acompanha a URL de retorno, inclusive ao abrir o e-mail em outro navegador. Abrir novamente um convite de uma liga da qual ja participa nao duplica a participacao.
+
+Permita as URLs de callback com o parametro de convite em Authentication > URL Configuration > Redirect URLs. Alem das rotas existentes, adicione `https://liga-da-academia.vercel.app/auth/callback?invite=*` e `http://localhost:3000/auth/callback?invite=*` (adapte o dominio se necessario). Solicite um novo e-mail de confirmacao depois de configurar. Nao e necessaria migracao SQL: os convites usam a funcao existente `join_league_by_code`, validada pelo Supabase.
+
 ## Grupo muscular treinado
 
 Ao registrar Presenca, o usuario pode escolher uma categoria e selecionar varios musculos:
