@@ -19,6 +19,20 @@ function AuthCallback() {
   const [message, setMessage] = useState("Confirmando cadastro...");
 
   useEffect(() => {
+    const recoveryType = new URLSearchParams(window.location.hash.slice(1)).get("type");
+    if (recoveryType === "recovery" || searchParams.get("type") === "recovery") {
+      window.location.replace(`/auth/reset-password${window.location.search}${window.location.hash}`);
+      return;
+    }
+
+    let recovering = false;
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        recovering = true;
+        router.replace("/auth/reset-password");
+      }
+    });
+
     async function confirmEmail() {
       const code = searchParams.get("code");
 
@@ -30,10 +44,12 @@ function AuthCallback() {
         }
       }
 
-      router.replace("/");
+      await supabase.auth.getSession();
+      if (!recovering) router.replace("/");
     }
 
     confirmEmail();
+    return () => listener.subscription.unsubscribe();
   }, [router, searchParams]);
 
   return <CallbackStatus message={message} />;
