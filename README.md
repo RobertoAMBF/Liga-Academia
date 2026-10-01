@@ -79,6 +79,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 ## Abas do dashboard
 
+No celular, o layout usa uma coluna, abas fixas ao rolar e um seletor de liga acima do conteudo. A classificacao exibe cada atleta com posicao, nome, pontos e todas as estatisticas, sem exigir rolagem horizontal. A tabela completa permanece em telas maiores. Formularios usam campos de 16px para evitar zoom automatico e controles com area de toque de pelo menos 44px; o grupo muscular usa um seletor no celular. Funciona diretamente no navegador, sem instalar um aplicativo.
+
 O botao de tema alterna entre modo claro e escuro em todas as telas, incluindo login e recuperacao de senha. A preferencia fica salva no navegador; na primeira visita, o aplicativo acompanha o tema do sistema. O modo escuro usa fundo grafite, paineis escuros, texto claro e destaques verdes.
 
 - **Liga**: Classificacao, Minhas Ligas, Criar Liga e Entrar por Codigo.
