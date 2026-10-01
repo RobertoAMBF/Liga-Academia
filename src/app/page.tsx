@@ -136,12 +136,19 @@ export default function Home() {
 }
 
 function AuthScreen() {
-  const [mode, setMode] = useState<"login" | "signup" | "recovery">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "recovery" | "confirmation">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown === 0) return;
+    const timer = window.setTimeout(() => setResendCooldown((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     if (pendingInvite()) {
@@ -172,25 +179,52 @@ function AuthScreen() {
     const callbackUrl = new URL("/auth/callback", window.location.origin);
     const invitation = pendingInvite();
     if (invitation) callbackUrl.searchParams.set("invite", invitation);
-    const response =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({ email, password })
+    try {
+      if (mode === "confirmation") {
+        if (resendCooldown > 0) return;
+        const { error } = await supabase.auth.resend({
+          type: "signup",
+          email: email.trim(),
+          options: { emailRedirectTo: callbackUrl.toString() }
+        });
+        if (error) setMessage(error.message);
+        else {
+          setResendCooldown(60);
+          setMessage("Se houver um cadastro aguardando confirmacao, voce recebera um novo link. Confira sua caixa de entrada e o spam.");
+        }
+        return;
+      }
+
+      const response = mode === "login"
+        ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
         : await supabase.auth.signUp({
-            email,
+            email: email.trim(),
             password,
             options: {
-              data: { display_name: name || email.split("@")[0] },
+              data: { display_name: name || email.trim().split("@")[0] },
               emailRedirectTo: callbackUrl.toString()
             }
           });
 
-    if (response.error) {
-      setMessage(response.error.message);
-    } else if (mode === "signup") {
-      setMessage("Cadastro criado. Confirme o e-mail se o Supabase solicitar.");
+      if (response.error) {
+        if (response.error.code === "email_not_confirmed") {
+          setMode("confirmation");
+          setPassword("");
+          setMessage("Confirme seu e-mail antes de entrar. Abra o link recebido ou solicite o reenvio abaixo.");
+        } else {
+          setMessage(response.error.message);
+        }
+      } else if (mode === "signup" && !response.data.session) {
+        setMode("confirmation");
+        setPassword("");
+        setResendCooldown(60);
+        setMessage("Confira seu e-mail e abra o link de confirmacao para ativar sua conta. Verifique tambem o spam. Se ja tiver uma conta, use Entrar.");
+      }
+    } catch {
+      setMessage("Nao foi possivel concluir. Confira sua conexao e tente novamente.");
+    } finally {
+      setBusy(false);
     }
-
-    setBusy(false);
   }
 
   return (
@@ -229,14 +263,16 @@ function AuthScreen() {
             <button
               className={clsx("rounded-md px-4 py-3 text-sm font-bold", mode === "login" && "bg-white shadow-sm")}
               type="button"
-              onClick={() => setMode("login")}
+              disabled={busy}
+              onClick={() => { setMode("login"); setMessage(""); }}
             >
               Entrar
             </button>
             <button
               className={clsx("rounded-md px-4 py-3 text-sm font-bold", mode === "signup" && "bg-white shadow-sm")}
               type="button"
-              onClick={() => setMode("signup")}
+              disabled={busy}
+              onClick={() => { setMode("signup"); setMessage(""); }}
             >
               Cadastrar
             </button>
@@ -265,7 +301,7 @@ function AuthScreen() {
                 placeholder="voce@email.com"
               />
             </label>
-            {mode !== "recovery" && <label className="block">
+            {(mode === "login" || mode === "signup") && <label className="block">
               <span className="mb-2 block text-sm font-bold">Senha</span>
               <input
                 className="w-full rounded-lg border border-ink/15 px-4 py-3 outline-none focus:border-grass"
@@ -292,14 +328,25 @@ function AuthScreen() {
             </button>
           )}
 
-          {message && <p className="mt-4 rounded-lg bg-mist p-3 text-sm font-semibold text-ink/75">{message}</p>}
+          {mode === "login" && (
+            <button type="button" disabled={busy} onClick={() => { setMode("confirmation"); setMessage(""); }}
+              className="mt-3 block text-sm font-bold text-grass hover:underline disabled:opacity-60">
+              Reenviar confirmacao de e-mail
+            </button>
+          )}
+
+          {mode === "confirmation" && (
+            <h2 className="mt-4 text-lg font-bold">Confirme seu e-mail</h2>
+          )}
+
+          {message && <p role="status" className="mt-4 rounded-lg bg-mist p-3 text-sm font-semibold text-ink/75">{message}</p>}
 
           <button
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-grass px-5 py-3 font-black text-solid shadow-sm transition hover:bg-strong disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={busy}
+            disabled={busy || (mode === "confirmation" && resendCooldown > 0)}
           >
             <Dumbbell className="h-5 w-5" />
-            {busy ? "Aguarde..." : mode === "login" ? "Entrar na liga" : mode === "recovery" ? "Enviar link de recuperacao" : "Criar conta"}
+            {busy ? "Aguarde..." : mode === "login" ? "Entrar na liga" : mode === "recovery" ? "Enviar link de recuperacao" : mode === "confirmation" ? (resendCooldown > 0 ? `Reenviar em ${resendCooldown}s` : "Reenviar confirmacao") : "Criar conta"}
           </button>
         </form>
       </section>
